@@ -5,16 +5,21 @@ Bangumi(this repo) is a simple crawler for [Bilibil](https://www.bilibili.com) w
 
 ## Usage
 1. Set up env
+
 ```
 python -m venv venv
 source venv/bin/activate
 pip install -r requirements
 ```
-2. Set up storage backend, make sure your storage backend work correnctly, **ONLY** [MongoDB](https://www.mongodb.com) is supported now.
+2. Set up storage backend
+
+ Make sure your storage backend work correnctly, **ONLY** [MongoDB](https://www.mongodb.com) is supported now.
 2. Configuration
-custom ```conf.py```.
+
+ Custom ```conf.py```.
 3. Run
-```python exec.py```
+
+ ```python exec.py```
 
 ## Todo
 1. MySQL support
