@@ -43,8 +43,8 @@ class MongoDB(DB):
         return self.db.animes.find_one({'season_id': season_id}) is not None
 
     def is_reviews_finished(self, media_id):
-        return self.db.long_reviews.find_one({'review_id': media_id}) is not None \
-               or self.db.short_reviews.find_one({'review_id': media_id}) is not None
+        return self.db.long_reviews.find_one({'media_id': media_id}) is not None \
+               or self.db.short_reviews.find_one({'media_id': media_id}) is not None
 
     def __init__(self, conf) -> None:
         self.db = MongoClient(conf.DB_HOST, conf.DB_PORT)[conf.DB_DATABASE]

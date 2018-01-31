@@ -51,11 +51,9 @@ class BangumiCrawler:
 
     @staticmethod
     def make_long_review(review, media_id):
-        review_id = int(review['review_id'])
-        print('[DEBUG] parsing at reiview_id %s...' % review_id)
         author = review['author']
         result = {
-            'review_id': review_id,
+            'review_id': int(review['review_id']),
             'author': {
                 'mid': int(author['mid']),
                 'avatar_url': author['avatar'],
@@ -72,16 +70,14 @@ class BangumiCrawler:
             'media_id': int(media_id)
         }
         if 'user_season' in review:
-            result.update({'last_ep_index': int(review['user_season']['last_ep_index'])})
+            result.update({'last_ep_index': review['user_season']['last_ep_index']})
         return result
 
     @staticmethod
     def make_short_review(review, media_id):
-        review_id = int(review['review_id'])
-        print('[DEBUG] parsing at reiview_id %s...' % review_id)
         author = review['author']
         result = {
-            'review_id': review_id,
+            'review_id': int(review['review_id']),
             'author': {
                 'mid': int(author['mid']),
                 'avatar_url': author['avatar'],
@@ -95,7 +91,7 @@ class BangumiCrawler:
             'media_id': media_id
         }
         if 'user_season' in review:
-            result.update({'last_ep_index': float(review['user_season']['last_ep_index'])})
+            result.update({'last_ep_index': review['user_season']['last_ep_index']})
         return result
 
     def get_bulk_reviews(self, media_id, long=True):
