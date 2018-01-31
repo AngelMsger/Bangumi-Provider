@@ -146,9 +146,9 @@ class BangumiCrawler:
         # Get detail of animes
         print('[INFO] getting %s details...' % len(todo))
         url = 'https://bangumi.bilibili.com/jsonp/seasoninfo/%s.ver?callback=seasonListCallback&jsonp=jsonp'
-        retry = 0
-        while len(todo) > 0 and retry < max_retry:
-            print('[INFO] trying %s times...' % retry)
+        detail_retry = 0
+        while len(todo) > 0 and detail_retry < max_retry:
+            print('[INFO] trying %s times...' % detail_retry)
             results = []
             for raw_result in todo:
                 season_id = int(raw_result['season_id'])
@@ -167,17 +167,17 @@ class BangumiCrawler:
                 else:
                     print('[WARNING] request api failed, waiting for retry, season_id: %s.' % season_id)
             self.db.persist_animes(results)
-            retry += 1
-            print('[INFO] %s try finished, %s solved, %s left.' % (retry, len(results), len(todo)))
+            detail_retry += 1
+            print('[INFO] %s try finished, %s solved, %s left.' % (detail_retry, len(results), len(todo)))
         print('[%s] get detail finished, %s.' % ('SUCCESS', 'no error.')
               if len(todo) == 0 else ('WARNING', 'with %s errors.' % len(todo)))
 
         # Get Reviews of animes
         print('[INFO] getting reviews...')
-        retry = 0
+        reviews_retry = 0
         media_ids = self.db.get_all_media_ids()
-        while len(media_ids) > 0 and retry < max_retry:
-            print('[INFO] trying %s times...' % retry)
+        while len(media_ids) > 0 and reviews_retry < max_retry:
+            print('[INFO] trying %s times...' % reviews_retry)
             for media_id in media_ids:
                 if not self.db.is_reviews_finished(media_id):
                     try:
@@ -192,9 +192,9 @@ class BangumiCrawler:
                         print('[INFO] get %s finished' % media_id)
                     else:
                         print('[WARNING] parse response failed, waiting for retry, media_id: %s.' % media_id)
-            retry += 1
+            reviews_retry += 1
 
-        print('[SUCCESS] all tasks finished')
+        print('[SUCCESS] all tasks finished, with (%s, %s) times retry.')
 
 
 if __name__ == '__main__':
