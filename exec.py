@@ -148,6 +148,7 @@ class BangumiCrawler:
         url = 'https://bangumi.bilibili.com/jsonp/seasoninfo/%s.ver?callback=seasonListCallback&jsonp=jsonp'
         retry = 0
         while len(todo) > 0 and retry < max_retry:
+            print('[INFO] trying %s times...' % retry)
             results = []
             for raw_result in todo:
                 season_id = int(raw_result['season_id'])
@@ -176,6 +177,7 @@ class BangumiCrawler:
         retry = 0
         media_ids = self.db.get_all_media_ids()
         while len(media_ids) > 0 and retry < max_retry:
+            print('[INFO] trying %s times...' % retry)
             for media_id in media_ids:
                 if not self.db.is_reviews_finished(media_id):
                     try:
@@ -192,7 +194,7 @@ class BangumiCrawler:
                         print('[WARNING] parse response failed, waiting for retry, media_id: %s.' % media_id)
             retry += 1
 
-        print('[SUCCESS] all tasks finished, with %s times retry.' % retry)
+        print('[SUCCESS] all tasks finished')
 
 
 if __name__ == '__main__':
