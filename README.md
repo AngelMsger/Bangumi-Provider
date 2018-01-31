@@ -14,10 +14,10 @@ pip install -r requirements
 2. Set up storage backend
 
  Make sure your storage backend work correnctly, **ONLY** [MongoDB](https://www.mongodb.com) is supported now.
-2. Configuration
+3. Configuration
 
  Custom ```conf.py```.
-3. Run
+4. Run
 
  ```python exec.py```
 
