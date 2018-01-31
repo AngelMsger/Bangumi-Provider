@@ -95,7 +95,7 @@ class BangumiCrawler:
             'media_id': media_id
         }
         if 'user_season' in review:
-            result.update({'last_ep_index': int(review['user_season']['last_ep_index'])})
+            result.update({'last_ep_index': float(review['user_season']['last_ep_index'])})
         return result
 
     def get_bulk_reviews(self, media_id, long=True):
@@ -120,7 +120,7 @@ class BangumiCrawler:
         print('[%s] %s finished.' % ('SUCCESS' if count == total else 'WARNING', media_id))
         return results
 
-    def crawl(self, max_retry=512):
+    def crawl(self, max_retry=8):
         print('[INFO] hello! this is bangumi crawler :)')
 
         # Get all animes
@@ -168,7 +168,7 @@ class BangumiCrawler:
                     todo.remove(raw_result)
                     print('[INFO] get %s finished.' % season_id)
                 else:
-                    print('[WARNING] request api failed, waiting for retry, season_id: %s' % season_id)
+                    print('[WARNING] request api failed, waiting for retry, season_id: %s.' % season_id)
             self.db.persist_animes(results)
             retry += 1
             print('[INFO] %s try finished, %s solved, %s left.' % (retry, len(results), len(todo)))
@@ -177,13 +177,25 @@ class BangumiCrawler:
 
         # Get Reviews of animes
         print('[INFO] getting reviews...')
+        retry = 0
         media_ids = self.db.get_all_media_ids()
-        for media_id in media_ids:
-            if not self.db.is_reviews_finished(media_id):
-                long_reviews = self.get_bulk_reviews(media_id)
-                short_reviews = self.get_bulk_reviews(media_id, long=False)
-                self.db.persist_long_reviews(long_reviews)
-                self.db.persist_short_reviews(short_reviews)
+        while len(media_ids) > 0 and retry < max_retry:
+            for media_id in media_ids:
+                if not self.db.is_reviews_finished(media_id):
+                    try:
+                        long_reviews = self.get_bulk_reviews(media_id)
+                        short_reviews = self.get_bulk_reviews(media_id, long=False)
+
+                    except KeyError:
+                        long_reviews = short_reviews = None
+                    if long_reviews is not None and short_reviews is not None:
+                        self.db.persist_long_reviews(long_reviews)
+                        self.db.persist_short_reviews(short_reviews)
+                        media_ids.remove(media_id)
+                        print('[INFO] get %s finished' % media_id)
+                    else:
+                        print('[WARNING] parse response failed, waiting for retry, media_id: %s.' % media_id)
+            retry += 1
 
         print('[SUCCESS] all tasks finished, with %s times retry.' % retry)
 
