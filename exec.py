@@ -185,7 +185,6 @@ class BangumiCrawler:
                     try:
                         long_reviews = self.get_bulk_reviews(media_id)
                         short_reviews = self.get_bulk_reviews(media_id, long=False)
-
                     except KeyError:
                         long_reviews = short_reviews = None
                     if long_reviews is not None and short_reviews is not None:
