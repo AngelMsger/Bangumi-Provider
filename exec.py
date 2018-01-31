@@ -129,7 +129,7 @@ class BangumiCrawler:
                     todo.append(raw_result)
 
         # Get detail of animes
-        print('[INFO] getting details...')
+        print('[INFO] getting %s details...' % len(todo))
         url = 'https://bangumi.bilibili.com/jsonp/seasoninfo/%s.ver?callback=seasonListCallback&jsonp=jsonp'
         retry = 0
         while len(todo) > 0 and retry < max_retry:
