@@ -1,7 +1,7 @@
 # Bangumi
 
 ## Overview
-Bangumi(this repo) is a simple crawler for [Bilibil](https://www.bilibili.com) which with single thread and no framework.
+Bangumi(this repo) is a simple crawler for [Bilibil](https://www.bilibili.com) with single thread and no framework.
 
 ## Usage
 1. Set up env
