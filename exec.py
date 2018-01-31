@@ -23,25 +23,30 @@ class BangumiCrawler:
 
     @staticmethod
     def make_anime(detail_response, raw_result):
-        season_id = raw_result['season_id']
+        season_id = int(raw_result['season_id'])
         detail = json.loads(detail_response.text[19:-2])['result']
         media = detail['media']
         result = {
             '_id': season_id,
             'title': raw_result['title'],
             'alias': detail.get('alias', ''),
-            'tags': [{'id': tag['tag_id'], 'name': tag['tag_name']} for tag in detail.get('tags', [])],
-            'area': [{'id': area['id'], 'name': area['name']} for area in media.get('area', [])],
-            'is_finish': raw_result['is_finish'],
-            'favorites': raw_result['favorites'],
+            'tags': [{'id': int(tag['tag_id']), 'name': tag['tag_name']} for tag in detail.get('tags', [])],
+            'area': [{'id': int(area['id']), 'name': area['name']} for area in media.get('area', [])],
+            'is_finish': bool(raw_result['is_finish']),
+            'favorites': int(raw_result['favorites']),
             'cover_url': raw_result['cover'],
-            'pub_time': raw_result['pub_time'],
+            'pub_time': datetime.fromtimestamp(raw_result['pub_time']),
             'media_id': media['media_id'],
             'evaluate': detail.get('evaluate', ''),
             'episodes': len(detail['episodes'])
         }
         if 'rating' in media:
-            result.update({'rating': media['rating']})
+            result.update({
+                'rating': {
+                    'count': int(media['rating']['count']),
+                    'score': float(media['rating'])
+                }
+            })
         return result
 
     @staticmethod
@@ -54,7 +59,7 @@ class BangumiCrawler:
             'ctime': datetime.fromtimestamp(int(review['ctime'])),
             'mtime': datetime.fromtimestamp(int(review['mtime'])),
             'likes': int(review['likes']),
-            'score': int(review['user_rating']['score']),
+            'score': float(review['user_rating']['score']),
             'is_origin': bool(review['is_origin']),
             'is_spoiler': bool(review['is_spoiler']),
             'media_id': int(media_id)
@@ -66,13 +71,13 @@ class BangumiCrawler:
     @staticmethod
     def make_short_review(review, media_id):
         result = {
-            '_id': review['review_id'],
+            '_id': int(review['review_id']),
             'author': review['author'],
             'content': review['content'],
             'ctime': datetime.fromtimestamp(int(review['ctime'])),
             'mtime': datetime.fromtimestamp(int(review['mtime'])),
             'likes': int(review['likes']),
-            'score': int(review['user_rating']['score']),
+            'score': float(review['user_rating']['score']),
             'media_id': media_id
         }
         if 'user_season' in review:

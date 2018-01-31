@@ -1,7 +1,7 @@
 class Conf:
     DB_ENABLE_MONGO = True
 
-    DB_MONGO_ENABLE_AUTH = False
+    DB_MONGO_ENABLE_AUTH = True
 
     DB_HOST = '127.0.0.1'
     DB_PORT = 27017
