@@ -40,7 +40,7 @@ class MongoDB(DB):
         return [anime['media_id'] for anime in self.db.animes.find()]
 
     def is_anime_finished(self, season_id):
-        return self.db.animes.find_one({'id': season_id}) is not None
+        return self.db.animes.find_one({'_id': season_id}) is not None
 
     def is_reviews_finished(self, media_id):
         return self.db.long_reviews.find_one({'_id': media_id}) is not None \
