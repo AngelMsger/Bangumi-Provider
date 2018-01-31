@@ -44,7 +44,7 @@ class BangumiCrawler:
             result.update({
                 'rating': {
                     'count': int(media['rating']['count']),
-                    'score': float(media['rating'])
+                    'score': float(media['rating']['score'])
                 }
             })
         return result
