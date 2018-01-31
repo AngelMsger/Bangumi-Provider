@@ -51,9 +51,11 @@ class BangumiCrawler:
 
     @staticmethod
     def make_long_review(review, media_id):
+        review_id = int(review['review_id'])
+        print('[DEBUG] parsing at reiview_id %s...' % review_id)
         author = review['author']
         result = {
-            'review_id': int(review['review_id']),
+            'review_id': review_id,
             'author': {
                 'mid': int(author['mid']),
                 'avatar_url': author['avatar'],
@@ -75,9 +77,11 @@ class BangumiCrawler:
 
     @staticmethod
     def make_short_review(review, media_id):
+        review_id = int(review['review_id'])
+        print('[DEBUG] parsing at reiview_id %s...' % review_id)
         author = review['author']
         result = {
-            'review_id': int(review['review_id']),
+            'review_id': review_id,
             'author': {
                 'mid': int(author['mid']),
                 'avatar_url': author['avatar'],
