@@ -116,7 +116,7 @@ class BangumiCrawler:
         print('[%s] %s finished.' % ('SUCCESS' if count == total else 'WARNING', media_id))
         return results
 
-    def crawl(self, max_retry=8):
+    def crawl(self, max_retry=64):
         print('[INFO] hello! this is bangumi crawler :)')
 
         # Get all animes
@@ -194,7 +194,8 @@ class BangumiCrawler:
                         print('[WARNING] parse response failed, waiting for retry, media_id: %s.' % media_id)
             reviews_retry += 1
 
-        print('[SUCCESS] all tasks finished, with (%s, %s) times retry.')
+        print('[SUCCESS] tasks finished, %s left, with (%s, %s) times retry.'
+              % (len(media_ids), detail_retry, reviews_retry))
 
 
 if __name__ == '__main__':
