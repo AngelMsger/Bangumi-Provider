@@ -27,7 +27,7 @@ class BangumiCrawler:
         detail = json.loads(detail_response.text[19:-2])['result']
         media = detail['media']
         result = {
-            '_id': season_id,
+            'season_id': season_id,
             'title': raw_result['title'],
             'alias': detail.get('alias', ''),
             'tags': [{'id': int(tag['tag_id']), 'name': tag['tag_name']} for tag in detail.get('tags', [])],
@@ -51,9 +51,14 @@ class BangumiCrawler:
 
     @staticmethod
     def make_long_review(review, media_id):
+        author = review['author']
         result = {
-            '_id': int(review['review_id']),
-            'author': review['author'],
+            'review_id': int(review['review_id']),
+            'author': {
+                'mid': int(author['mid']),
+                'avatar_url': author['avatar'],
+                'uname': author['uname']
+            },
             'title': review['title'],
             'content': review['content'],
             'ctime': datetime.fromtimestamp(int(review['ctime'])),
@@ -70,9 +75,14 @@ class BangumiCrawler:
 
     @staticmethod
     def make_short_review(review, media_id):
+        author = review['author']
         result = {
-            '_id': int(review['review_id']),
-            'author': review['author'],
+            'review_id': int(review['review_id']),
+            'author': {
+                'mid': int(author['mid']),
+                'avatar_url': author['avatar'],
+                'uname': author['uname']
+            },
             'content': review['content'],
             'ctime': datetime.fromtimestamp(int(review['ctime'])),
             'mtime': datetime.fromtimestamp(int(review['mtime'])),
