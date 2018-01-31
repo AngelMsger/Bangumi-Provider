@@ -99,7 +99,7 @@ class BangumiCrawler:
             count = len(results)
             print('[INFO] parsing %s...%s/%s.' % (media_id, count, total))
             if cursor is not None:
-                print('[DEBUG] start at cursor: %s...')
+                print('[DEBUG] start at cursor: %s...' % cursor)
                 reviews = json.loads(requests.get('%s&cursor=%s' % (url, cursor)).text)['result']['list']
             else:
                 break
