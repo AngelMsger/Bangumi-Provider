@@ -192,6 +192,8 @@ class BangumiCrawler:
                         print('[INFO] get %s finished' % media_id)
                     else:
                         print('[WARNING] parse response failed, waiting for retry, media_id: %s.' % media_id)
+                else:
+                    media_ids.remove(media_id)
             reviews_retry += 1
 
         print('[SUCCESS] tasks finished, %s left, with (%s, %s) times retry.'
