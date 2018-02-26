@@ -2,6 +2,7 @@ import json
 from datetime import datetime
 
 import requests
+import schedule
 from requests.exceptions import RequestException
 
 from conf import conf
@@ -34,6 +35,7 @@ class BangumiCrawler:
             'area': [{'id': int(area['id']), 'name': area['name']} for area in media.get('area', [])],
             'is_finish': bool(raw_result['is_finish']),
             'favorites': int(raw_result['favorites']),
+            'danmaku_count': int(detail['danmaku_count']),
             'cover_url': raw_result['cover'],
             'pub_time': datetime.fromtimestamp(raw_result['pub_time']),
             'media_id': media['media_id'],
@@ -50,7 +52,7 @@ class BangumiCrawler:
         return result
 
     @staticmethod
-    def make_long_review(review, media_id):
+    def make_review(review, media_id, long=True):
         author = review['author']
         result = {
             'review_id': int(review['review_id']),
@@ -59,68 +61,47 @@ class BangumiCrawler:
                 'avatar_url': author['avatar'],
                 'uname': author['uname']
             },
-            'title': review['title'],
+
             'content': review['content'],
             'ctime': datetime.fromtimestamp(int(review['ctime'])),
             'mtime': datetime.fromtimestamp(int(review['mtime'])),
             'likes': int(review['likes']),
             'score': float(review['user_rating']['score']),
-            'is_origin': bool(review['is_origin']),
-            'is_spoiler': bool(review['is_spoiler']),
             'media_id': int(media_id)
         }
+        if long:
+            result.update({
+                'title': review['title'],
+                'is_origin': bool(review['is_origin']),
+                'is_spoiler': bool(review['is_spoiler']),
+            })
         if 'user_season' in review:
             result.update({'last_ep_index': review['user_season']['last_ep_index']})
         return result
 
-    @staticmethod
-    def make_short_review(review, media_id):
-        author = review['author']
-        result = {
-            'review_id': int(review['review_id']),
-            'author': {
-                'mid': int(author['mid']),
-                'avatar_url': author['avatar'],
-                'uname': author['uname']
-            },
-            'content': review['content'],
-            'ctime': datetime.fromtimestamp(int(review['ctime'])),
-            'mtime': datetime.fromtimestamp(int(review['mtime'])),
-            'likes': int(review['likes']),
-            'score': float(review['user_rating']['score']),
-            'media_id': media_id
-        }
-        if 'user_season' in review:
-            result.update({'last_ep_index': review['user_season']['last_ep_index']})
-        return result
-
-    def get_bulk_reviews(self, media_id, long=True):
-        print('[INFO] %s starting...' % media_id)
-        url = 'https://bangumi.bilibili.com/review/web_api/%s/list?media_id=%s' \
-              % ('long' if long else 'short', media_id)
-        response = requests.get(url)
+    def get_bulk_reviews(self, media_id, cursor, long=True):
+        reviews_type = 'long' if long else 'short'
+        print("[INFO] Getting %s's %s reviews..." % (media_id, reviews_type))
+        url = 'https://bangumi.bilibili.com/review/web_api/%s/list?media_id=%s' % (reviews_type, media_id)
+        response = requests.get('%s&cursor=%s' % (url, cursor) if cursor is not None else url)
         result = json.loads(response.text)['result']
         total, reviews = result['total'], result['list']
-        results, count = [], 0
-        while len(results) < total and len(reviews) > 0:
-            results.extend([self.make_long_review(review, media_id)
-                            if long else self.make_short_review(review, media_id) for review in reviews])
-            cursor = reviews[-1].get('cursor', None)
-            count = len(results)
-            print('[INFO] parsing %s...%s/%s.' % (media_id, count, total))
-            if cursor is not None:
-                print('[DEBUG] start at cursor: %s...' % cursor)
-                reviews = json.loads(requests.get('%s&cursor=%s' % (url, cursor)).text)['result']['list']
-            else:
-                break
-        print('[%s] %s finished.' % ('SUCCESS' if count == total else 'WARNING', media_id))
-        return results
+        results = []
+        while len(reviews) > 0:
+            results.extend([self.make_review(review, media_id)
+                            if long else self.make_review(review, media_id, long=False) for review in reviews])
+            cursor = reviews[-1]['cursor']
+            print("[DEBUG] Processing %s's reviews at cursor: %s..." % (media_id, cursor))
+            reviews = json.loads(requests.get('%s&cursor=%s' % (url, cursor)).text)['result']['list']
+        print('[%s] %s finished.' %
+              ('SUCCESS' if self.db.get_reviews_count(media_id, long=long) == total else 'WARNING', media_id))
+        return results, cursor
 
-    def crawl(self, max_retry=16):
-        print('[INFO] hello! this is bangumi crawler :)')
+    def crawl(self, full_crawl=False, max_retry=16):
+        print('[INFO] Hello! This is Bangumi-Crawler :)')
 
         # Get all animes
-        print('[INFO] getting animes...')
+        print('[INFO] Getting Animes List...')
         url = "https://bangumi.bilibili.com/web_api/season/index_global?version=%s&area=%s&is_finish=%s&start_year=%s" \
               "&quarter=%s&tag_id=%s" % (
                   self.conf.ANIMES_VERSION,
@@ -134,25 +115,28 @@ class BangumiCrawler:
         pages = int(response.get("result", {}).get("pages", 0))
         url += '&page=%s'
 
+        if full_crawl:
+            self.db.truncate_all()
+        else:
+            self.db.archive()
+
         todo = []
-        for i in range(1, pages + 1):
-            print('[INFO] %s/%s...' % (i, pages))
+        for i in range(100, pages + 1):
+            print('[INFO] Preparing %s/%s...' % (i, pages))
             raw_results = json.loads(requests.get(url % i, headers=BangumiCrawler.HEADERS).text).get('result', {}) \
                 .get('list', [])
             for raw_result in raw_results:
-                if not self.db.is_anime_finished(int(raw_result['season_id'])):
-                    todo.append(raw_result)
+                todo.append(raw_result)
 
         # Get detail of animes
-        print('[INFO] getting %s details...' % len(todo))
         url = 'https://bangumi.bilibili.com/jsonp/seasoninfo/%s.ver?callback=seasonListCallback&jsonp=jsonp'
         detail_retry = 0
         while len(todo) > 0 and detail_retry < max_retry:
-            print('[INFO] trying %s times...' % detail_retry)
+            print('[INFO] Start trying %s times, %s animes left.' % (detail_retry, len(todo)))
             results = []
             for raw_result in todo:
                 season_id = int(raw_result['season_id'])
-                print('[INFO] starting %s...' % season_id)
+                print('[INFO] Processing %s...' % season_id)
                 try:
                     detail_response = requests.get(url % season_id, headers={
                         'Referer': 'https://bangumi.bilibili.com/anime/%s' % season_id
@@ -163,43 +147,36 @@ class BangumiCrawler:
                     result = self.make_anime(detail_response, raw_result)
                     results.append(result)
                     todo.remove(raw_result)
-                    print('[INFO] get %s finished.' % season_id)
+                    print('[INFO] %s processed.' % season_id)
                 else:
-                    print('[WARNING] request api failed, waiting for retry, season_id: %s.' % season_id)
+                    print('[WARNING] Request API failed, waiting for retry, season_id: %s.' % season_id)
             self.db.persist_animes(results)
             detail_retry += 1
             print('[INFO] %s try finished, %s solved, %s left.' % (detail_retry, len(results), len(todo)))
-        print('[%s] get detail finished, %s.' % ('SUCCESS', 'no error.')
+        print('[%s] Getting detail finished, %s.' % ('SUCCESS', 'no error.')
               if len(todo) == 0 else ('WARNING', 'with %s errors.' % len(todo)))
 
         # Get reviews of animes
-        print('[INFO] getting reviews...')
+        print('[INFO] Getting reviews...')
         reviews_retry = 0
-        media_ids = self.db.get_all_media_ids()
-        while len(media_ids) > 0 and reviews_retry < max_retry:
-            print('[INFO] trying %s times..., %s left.' % (reviews_retry, len(media_ids)))
-            for media_id in media_ids:
-                if not self.db.is_reviews_finished(media_id):
-                    try:
-                        long_reviews = self.get_bulk_reviews(media_id)
-                        short_reviews = self.get_bulk_reviews(media_id, long=False)
-                    except KeyError:
-                        long_reviews = short_reviews = None
-                    if long_reviews is not None and short_reviews is not None:
-                        self.db.persist_long_reviews(long_reviews)
-                        self.db.persist_short_reviews(short_reviews)
-                        media_ids.remove(media_id)
-                        print('[INFO] get %s finished' % media_id)
-                    else:
-                        print('[WARNING] parse response failed, waiting for retry, media_id: %s.' % media_id)
-                else:
-                    media_ids.remove(media_id)
+        entrances = self.db.get_all_entrances()
+        while len(entrances) > 0 and reviews_retry < max_retry:
+            print('[INFO] Start trying %s times, %s animes left.' % (reviews_retry, len(entrances)))
+            for entrance in entrances:
+                media_id, last_long_reviews_cursor, last_short_reviews_cursor = entrance
+                long_reviews, last_long_reviews_cursor = self.get_bulk_reviews(media_id, last_long_reviews_cursor)
+                short_reviews, last_short_reviews_cursor = self.get_bulk_reviews(media_id, last_short_reviews_cursor,
+                                                                                 long=False)
+                self.db.persist_reviews(media_id, long_reviews, last_long_reviews_cursor)
+                self.db.persist_reviews(media_id, short_reviews, last_short_reviews_cursor, long=False)
+                entrances.remove(entrance)
+                print("[INFO] Get %s's reviews finished." % media_id)
             reviews_retry += 1
 
         print('[SUCCESS] tasks finished, %s left, with (%s, %s) times retry.'
-              % (len(media_ids), detail_retry, reviews_retry))
+              % (len(entrances), detail_retry, reviews_retry))
 
 
 if __name__ == '__main__':
     crawler = BangumiCrawler(MongoDB, conf)
-    crawler.crawl()
+    schedule.every().day.at(conf.CRON_AT).do(crawler.crawl)

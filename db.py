@@ -1,50 +1,82 @@
+from datetime import date
+from datetime import datetime
+
 from pymongo import MongoClient
 
 
 # Interface
 class DB:
-    def persist_animes(self, animes):
+    def truncate_all(self) -> None:
         pass
 
-    def persist_long_reviews(self, long_reviews):
+    def archive(self) -> None:
         pass
 
-    def persist_short_reviews(self, short_reviews):
+    def persist_animes(self, animes) -> None:
         pass
 
-    def get_all_media_ids(self):
+    def persist_reviews(self, media_id, reviews, cursor, long=True) -> None:
         pass
 
-    def is_anime_finished(self, season_id):
+    def get_all_entrances(self):
         pass
 
-    def is_reviews_finished(self, media_id):
+    def get_reviews_count(self, media_id, long=True):
         pass
 
 
 # Persist solution for MongoDB
 class MongoDB(DB):
-    def persist_animes(self, animes):
-        if len(animes) > 0:
-            self.db.animes.insert_many(animes)
+    def truncate_all(self) -> None:
+        self.db.animes.remove({})
+        self.db.long_reviews.remove({})
+        self.db.short_reviews.remove({})
+        self.db.archives.remove({})
 
-    def persist_long_reviews(self, long_reviews):
-        if len(long_reviews) > 0:
-            self.db.long_reviews.insert_many(long_reviews)
+    def archive(self) -> None:
+        today = datetime.combine(date.today(), datetime.min.time())
+        if self.db.archives.find_one({'date': today}) is None:
+            outdated = self.db.animes.find()
+            archives = []
+            for anime in outdated:
+                archive = {
+                    'season_id': anime['season_id'],
+                    'favorites': anime['favorites'],
+                    'danmaku_count': anime['danmaku_count'],
+                    'long_reviews_count': self.get_reviews_count(anime['media_id']),
+                    'short_reviews_count': self.get_reviews_count(anime['media_id'], long=False)
+                }
+                if 'rating' in anime:
+                    archive.update({'rating': anime['rating']})
+                archives.append(archive)
+            self.db.archives.insert_one({
+                'date': today,
+                'archives': archives
+            })
 
-    def persist_short_reviews(self, short_reviews):
-        if len(short_reviews) > 0:
-            self.db.short_reviews.insert_many(short_reviews)
+    def persist_animes(self, animes) -> None:
+        for anime in animes:
+            self.db.animes.update({'season_id': anime['season_id']}, {'$set': anime}, upsert=True)
 
-    def get_all_media_ids(self):
-        return [anime['media_id'] for anime in self.db.animes.find()]
+    def persist_reviews(self, media_id, reviews, cursor=None, long=True) -> None:
+        if len(reviews) > 0:
+            if long:
+                self.db.long_reviews.insert_many(reviews)
+                if cursor is not None:
+                    self.db.animes.update_one({'media_id': media_id}, {'$set': {'last_long_reviews_cursor': cursor}})
+            else:
+                self.db.short_reviews.insert_many(reviews)
+                if cursor is not None:
+                    self.db.animes.update_one({'media_id': media_id}, {'$set': {'last_short_reviews_cursor': cursor}})
 
-    def is_anime_finished(self, season_id):
-        return self.db.animes.find_one({'season_id': season_id}) is not None
+    def get_all_entrances(self):
+        return [(anime['media_id'],
+                 anime.get('last_long_reviews_cursor', None),
+                 anime.get('last_short_reviews_cursor', None)
+                 ) for anime in self.db.animes.find()]
 
-    def is_reviews_finished(self, media_id):
-        return self.db.long_reviews.find_one({'media_id': media_id}) is not None \
-               or self.db.short_reviews.find_one({'media_id': media_id}) is not None
+    def get_reviews_count(self, media_id, long=True):
+        return self.db.long_reviews.count() if long else self.db.short_reviews.count()
 
     def __init__(self, conf) -> None:
         self.db = MongoClient(conf.DB_HOST, conf.DB_PORT)[conf.DB_DATABASE]
@@ -53,5 +85,3 @@ class MongoDB(DB):
 
 
 # TODO: MySQL Support
-
-# TODO: Migration

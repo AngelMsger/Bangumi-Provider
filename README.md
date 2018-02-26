@@ -1,23 +1,37 @@
-# Bangumi
+# Bangumi-Crawler
+
+![Bangumi-Crawler](https://s1.hdslb.com/bfs/static/jinkela/home/images/bgm-nodata.png)
 
 ## Overview
-Bangumi(this repo) is a simple crawler for [Bilibil](https://www.bilibili.com) with single thread and no framework.
+Bangumi-Crawler is a animes information and their comments crawler for [Bilibil](https://www.bilibili.com). It run with single thread and no framework was used.
+
+## Features
+* Incremental
+* Containerized
 
 ## Usage
-### 1. Set up env
+
+### With Docker
+`docker run angelmsger/bangumi-crawler -itd --name=crawler --restart=always -e DB_HOST=192.168.151.198 -e DB_USERNAME=dev -e DB_PASSWORD=password`
+
+### Manually
+
+#### Set up env
 ```
 python -m venv venv
 source venv/bin/activate
 pip install -r requirements
 ```
-### 2. Set up storage backend
+
+#### Set up storage backend
 Make sure your storage backend work correnctly, **ONLY** [MongoDB](https://www.mongodb.com) is supported now.
-### 3. Configuration
+
+#### Configuration
 Custom ```conf.py```.
-### 4. Run
+
+#### Run
 ```python exec.py```
 
 ## Todo
 1. MySQL support
 2. Concurrent feature
-3. Upsert
