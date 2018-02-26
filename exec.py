@@ -123,7 +123,7 @@ class BangumiCrawler:
             self.db.archive()
 
         todo = []
-        for i in range(100, pages + 1):
+        for i in range(1, pages + 1):
             print('[INFO] Preparing %s/%s...' % (i, pages))
             raw_results = json.loads(requests.get(url % i, headers=BangumiCrawler.HEADERS).text).get('result', {}) \
                 .get('list', [])
