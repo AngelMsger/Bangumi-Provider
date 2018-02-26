@@ -172,7 +172,7 @@ class BangumiCrawler:
         print('[%s] get detail finished, %s.' % ('SUCCESS', 'no error.')
               if len(todo) == 0 else ('WARNING', 'with %s errors.' % len(todo)))
 
-        # Get Reviews of animes
+        # Get reviews of animes
         print('[INFO] getting reviews...')
         reviews_retry = 0
         media_ids = self.db.get_all_media_ids()
