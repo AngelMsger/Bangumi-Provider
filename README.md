@@ -4,7 +4,7 @@
 ![Bangumi-Crawler](https://s1.hdslb.com/bfs/static/jinkela/home/images/bgm-nodata.png)
 
 ## Overview
-Bangumi-Crawler is a animes information and their comments crawler for [Bilibil](https://www.bilibili.com). It run with single thread and no framework was used.
+Bangumi-Crawler is a animes information and their comments crawler for [Bilibili](https://www.bilibili.com). It run with single thread and no framework was used.
 
 ## Features
 * Incremental

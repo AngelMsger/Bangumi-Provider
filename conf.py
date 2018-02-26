@@ -10,7 +10,7 @@ class Conf:
 
     DB_HOST = os.environ.get('DB_HOST', '127.0.0.1')
     DB_PORT = os.environ.get('DB_PORT', 27017)
-    DB_USERNAME = os.environ.get('DB_USERNAME', 'dev')
+    DB_USERNAME = os.environ.get('DB_USERNAME', 'bangumi')
     DB_PASSWORD = os.environ.get('DB_PASSWORD', 'password')
 
     DB_DATABASE = os.environ.get('DB_DATABASE', 'bangumi')
