@@ -1,6 +1,6 @@
 version: '3'
 services:
-  web:
+  crawler:
     build: .
     image: angelmsger/bangumi-crawler
     environment:

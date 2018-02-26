@@ -1,4 +1,6 @@
 import json
+import time
+import time
 from datetime import datetime
 
 import requests
@@ -180,3 +182,7 @@ class BangumiCrawler:
 if __name__ == '__main__':
     crawler = BangumiCrawler(MongoDB, conf)
     schedule.every().day.at(conf.CRON_AT).do(crawler.crawl)
+
+    while True:
+        schedule.run_pending()
+        time.sleep(1)
