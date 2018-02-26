@@ -1,0 +1,15 @@
+sudo: required
+language: python
+python:
+  - "3.6"
+  - "3.6-dev"
+  - "3.7-dev"
+services:
+  - docker
+before_install:
+  - docker build -t angelmsger/bangumi-crawler .
+deploy:
+  provider: script
+  script: bash docker_push.sh
+  on:
+    branch: master

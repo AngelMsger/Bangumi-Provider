@@ -1,0 +1,11 @@
+version: '3'
+services:
+  web:
+    build: .
+    image: angelmsger/bangumi-crawler
+    environment:
+      - DB_MONGO_ENABLE_AUTH=False
+      - DB_HOST=mongo
+  mongo:
+    image: 'mongo'
+
