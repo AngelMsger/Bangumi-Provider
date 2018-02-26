@@ -1,4 +1,5 @@
 # Bangumi-Crawler
+[![Build Status](https://travis-ci.org/AngelMsger/Bangumi-Crawler.svg?branch=master)](https://travis-ci.org/AngelMsger/Bangumi-Crawler)
 
 ![Bangumi-Crawler](https://s1.hdslb.com/bfs/static/jinkela/home/images/bgm-nodata.png)
 
@@ -10,6 +11,9 @@ Bangumi-Crawler is a animes information and their comments crawler for [Bilibil]
 * Containerized
 
 ## Usage
+
+### With Docker-Compose
+`docker-compose up`
 
 ### With Docker
 `docker run angelmsger/bangumi-crawler -itd --name=crawler --restart=always -e DB_HOST=192.168.151.198 -e DB_USERNAME=dev -e DB_PASSWORD=password`
@@ -27,10 +31,10 @@ pip install -r requirements
 Make sure your storage backend work correnctly, **ONLY** [MongoDB](https://www.mongodb.com) is supported now.
 
 #### Configuration
-Custom ```conf.py```.
+Custom `conf.py`.
 
 #### Run
-```python exec.py```
+`python exec.py`
 
 ## Todo
 1. MySQL support
