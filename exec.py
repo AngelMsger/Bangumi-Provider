@@ -180,7 +180,7 @@ class BangumiCrawler:
 
 
 if __name__ == '__main__':
-    print('[INFO] Hello! This is Bangumi-Crawler :)')
+    print('[INFO] Hello! This is Bangumi-Crawler :)\n[INFO] Task Schedules at $s Everyday.' % conf.CRON_AT)
 
     crawler = BangumiCrawler(MongoDB, conf)
     schedule.every().day.at(conf.CRON_AT).do(crawler.crawl)
