@@ -8,4 +8,3 @@ services:
       - DB_HOST=mongo
   mongo:
     image: 'mongo'
-
