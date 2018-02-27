@@ -16,7 +16,7 @@ Bangumi-Crawler is a animes information and their comments crawler for [Bilibili
 `docker-compose up`
 
 ### With Docker
-`docker run -itd --name=crawler --net=host --restart=always -e DB_PASSWORD=password angelmsger/bangumi-crawler`
+`docker run -itd --name=crawler --net=host --restart=always -e DB_PASSWORD=$DB_PASSWORD angelmsger/bangumi-crawler`
 
 ### Manually
 
