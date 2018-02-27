@@ -10,7 +10,7 @@ before_install:
   - docker-compose up --no-start
   - docker-compose start
 script:
-  - docker inspect bangumi_crawler_1 | grep '"Running": true'
+  - docker inspect bangumi_crawler_1 | grep Running | grep true
 deploy:
   provider: script
   script: bash deploy.sh
