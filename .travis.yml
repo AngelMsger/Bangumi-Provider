@@ -2,14 +2,13 @@ sudo: required
 services:
   - docker
 before_install:
-  - sed 's/tag/$TRAVIS_TAG/g' docker-compose.yml
-  - cat docker-compose.yml
+  - sed -i 's/latest/'"$TRAVIS_TAG"'/g' docker-compose.yml
   - docker-compose up --no-start
   - docker-compose start
 script:
   - docker ps | grep bangumi-crawler | grep Up
-#deploy:
-#  provider: script
-#  script: bash deploy.sh
-#  on:
-#    tags: true
+deploy:
+  provider: script
+  script: bash deploy.sh
+  on:
+    tags: true

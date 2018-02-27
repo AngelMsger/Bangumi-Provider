@@ -2,7 +2,7 @@ version: '3'
 services:
   crawler:
     build: .
-    image: angelmsger/bangumi-crawler:tag
+    image: angelmsger/bangumi-crawler:latest
     environment:
       - DB_MONGO_ENABLE_AUTH=False
       - DB_HOST=mongo
