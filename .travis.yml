@@ -2,6 +2,7 @@ sudo: required
 services:
   - docker
 before_install:
+  - sed 's/latest/'"$TRAVIS_TAG"'/g' docker-compose.yml
   - sed -i 's/latest/'"$TRAVIS_TAG"'/g' docker-compose.yml
   - docker-compose up --no-start
   - docker-compose start
