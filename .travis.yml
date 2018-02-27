@@ -9,9 +9,8 @@ services:
 before_install:
   - docker-compose up --no-start
   - docker-compose start
-  - docker ps
 script:
-  - docker inspect bangumi_crawler_1 | grep Running | grep true
+  - docker ps | grep bangumi-crawler | grep Up
 deploy:
   provider: script
   script: bash deploy.sh
