@@ -83,7 +83,7 @@ class BangumiCrawler:
 
     def get_bulk_reviews(self, media_id, cursor, long=True):
         reviews_type = 'long' if long else 'short'
-        print("[INFO] Getting %s's %s reviews..." % (media_id, reviews_type))
+        print("[INFO] Getting %s's %s Reviews..." % (media_id, reviews_type))
         url = 'https://bangumi.bilibili.com/review/web_api/%s/list?media_id=%s' % (reviews_type, media_id)
         response = requests.get('%s&cursor=%s' % (url, cursor) if cursor is not None else url)
         result = json.loads(response.text)['result']
@@ -93,14 +93,14 @@ class BangumiCrawler:
             results.extend([self.make_review(review, media_id)
                             if long else self.make_review(review, media_id, long=False) for review in reviews])
             cursor = reviews[-1]['cursor']
-            print("[DEBUG] Processing %s's reviews at cursor: %s..." % (media_id, cursor))
+            print("[DEBUG] Processing %s's Reviews at Cursor: %s..." % (media_id, cursor))
             reviews = json.loads(requests.get('%s&cursor=%s' % (url, cursor)).text)['result']['list']
-        print('[%s] %s finished.' %
+        print('[%s] %s Finished.' %
               ('SUCCESS' if self.db.get_reviews_count(media_id, long=long) == total else 'WARNING', media_id))
         return results, cursor
 
     def crawl(self, full_crawl=False, max_retry=16):
-        print('[INFO] Hello! This is Bangumi-Crawler :)')
+        print('[INFO] New Crawl Beginning...')
 
         # Get all animes
         print('[INFO] Getting Animes List...')
@@ -134,7 +134,7 @@ class BangumiCrawler:
         url = 'https://bangumi.bilibili.com/jsonp/seasoninfo/%s.ver?callback=seasonListCallback&jsonp=jsonp'
         detail_retry = 0
         while len(todo) > 0 and detail_retry < max_retry:
-            print('[INFO] Start trying %s times, %s animes left.' % (detail_retry, len(todo)))
+            print('[INFO] Start Trying %s Times, %s Animes Left.' % (detail_retry, len(todo)))
             results = []
             for raw_result in todo:
                 season_id = int(raw_result['season_id'])
@@ -149,21 +149,21 @@ class BangumiCrawler:
                     result = self.make_anime(detail_response, raw_result)
                     results.append(result)
                     todo.remove(raw_result)
-                    print('[INFO] %s processed.' % season_id)
+                    print('[INFO] %s Processed.' % season_id)
                 else:
-                    print('[WARNING] Request API failed, waiting for retry, season_id: %s.' % season_id)
+                    print('[WARNING] Request API Failed, Waiting for Retry, season_id: %s.' % season_id)
             self.db.persist_animes(results)
             detail_retry += 1
-            print('[INFO] %s try finished, %s solved, %s left.' % (detail_retry, len(results), len(todo)))
-        print('[%s] Getting detail finished, %s.' % ('SUCCESS', 'no error.')
+            print('[INFO] %s Try Finished, %s Solved, %s Left.' % (detail_retry, len(results), len(todo)))
+        print('[%s] Getting Detail Finished, %s.' % ('SUCCESS', 'no error.')
               if len(todo) == 0 else ('WARNING', 'with %s errors.' % len(todo)))
 
         # Get reviews of animes
-        print('[INFO] Getting reviews...')
+        print('[INFO] Getting Reviews...')
         reviews_retry = 0
         entrances = self.db.get_all_entrances()
         while len(entrances) > 0 and reviews_retry < max_retry:
-            print('[INFO] Start trying %s times, %s animes left.' % (reviews_retry, len(entrances)))
+            print('[INFO] Start Trying %s Times, %s Animes Left.' % (reviews_retry, len(entrances)))
             for entrance in entrances:
                 media_id, last_long_reviews_cursor, last_short_reviews_cursor = entrance
                 long_reviews, last_long_reviews_cursor = self.get_bulk_reviews(media_id, last_long_reviews_cursor)
@@ -172,14 +172,16 @@ class BangumiCrawler:
                 self.db.persist_reviews(media_id, long_reviews, last_long_reviews_cursor)
                 self.db.persist_reviews(media_id, short_reviews, last_short_reviews_cursor, long=False)
                 entrances.remove(entrance)
-                print("[INFO] Get %s's reviews finished." % media_id)
+                print("[INFO] Get %s's Reviews Finished." % media_id)
             reviews_retry += 1
 
-        print('[SUCCESS] tasks finished, %s left, with (%s, %s) times retry.'
+        print('[SUCCESS] Tasks Finished, %s Left, with (%s, %s) Times Retry.'
               % (len(entrances), detail_retry, reviews_retry))
 
 
 if __name__ == '__main__':
+    print('[INFO] Hello! This is Bangumi-Crawler :)')
+
     crawler = BangumiCrawler(MongoDB, conf)
     schedule.every().day.at(conf.CRON_AT).do(crawler.crawl)
 
