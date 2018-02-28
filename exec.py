@@ -1,6 +1,7 @@
 import json
 import time
 from datetime import datetime
+from json import JSONDecodeError
 
 import requests
 import schedule
@@ -26,7 +27,10 @@ class BangumiCrawler:
     @staticmethod
     def make_anime(detail_response, raw_result):
         season_id = int(raw_result['season_id'])
-        detail = json.loads(detail_response.text[19:-2])['result']
+        try:
+            detail = json.loads(detail_response.text[19:-2])['result']
+        except JSONDecodeError:
+            return None
         media = detail['media']
         result = {
             'season_id': season_id,
@@ -146,9 +150,13 @@ class BangumiCrawler:
                     detail_response = None
                 if detail_response is not None and detail_response.status_code == 200:
                     result = self.make_anime(detail_response, raw_result)
-                    results.append(result)
-                    todo.remove(raw_result)
-                    print('[INFO] %s Processed.' % season_id)
+                    if result is not None:
+                        results.append(result)
+                        todo.remove(raw_result)
+                        print('[INFO] %s Processed.' % season_id)
+                    else:
+                        print("[WARNING] Decode %s's Response Error, Waiting for Retry...")
+                        continue
                 else:
                     print('[WARNING] Request API Failed, Waiting for Retry, season_id: %s.' % season_id)
             self.db.persist_animes(results)
