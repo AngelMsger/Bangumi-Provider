@@ -30,6 +30,7 @@ class BangumiCrawler:
         try:
             detail = json.loads(detail_response.text[19:-2])['result']
         except JSONDecodeError:
+            print('[DEBUG] Could Not Decode %s.' % detail_response.text)
             return None
         media = detail['media']
         result = {
