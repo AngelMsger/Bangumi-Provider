@@ -99,8 +99,9 @@ class BangumiCrawler:
             cursor = reviews[-1]['cursor']
             print("[DEBUG] Processing %s's Reviews at Cursor: %s..." % (media_id, cursor))
             reviews = requests.get('%s&cursor=%s' % (url, cursor)).json()['result']['list']
-        print('[%s] %s Finished.' %
-              ('SUCCESS' if self.db.get_reviews_count(media_id, long=long) == total else 'WARNING', media_id))
+        print("[%s] %s's %s Finished." %
+              ('SUCCESS' if self.db.get_reviews_count(media_id, long=long) == total else 'WARNING',
+               reviews_type.title(), media_id))
         return results, cursor
 
     def crawl(self, full_crawl=False, max_retry=16):

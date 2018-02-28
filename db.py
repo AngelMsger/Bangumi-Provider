@@ -76,7 +76,8 @@ class MongoDB(DB):
                  ) for anime in self.db.animes.find()]
 
     def get_reviews_count(self, media_id, long=True):
-        return self.db.long_reviews.count() if long else self.db.short_reviews.count()
+        query = {'media_id': media_id}
+        return self.db.long_reviews.count(query) if long else self.db.short_reviews.count(query)
 
     def __init__(self, conf) -> None:
         self.db = MongoClient(conf.DB_HOST, conf.DB_PORT)[conf.DB_DATABASE]
