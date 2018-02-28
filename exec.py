@@ -90,7 +90,7 @@ class BangumiCrawler:
         print("[INFO] Getting %s's %s Reviews..." % (media_id, reviews_type))
         url = 'https://bangumi.bilibili.com/review/web_api/%s/list?media_id=%s' % (reviews_type, media_id)
         response = requests.get('%s&cursor=%s' % (url, cursor) if cursor is not None else url)
-        result = json.loads(response.text)['result']
+        result = response.json()['result']
         total, reviews = result['total'], result['list']
         results = []
         while len(reviews) > 0:
@@ -98,7 +98,7 @@ class BangumiCrawler:
                             if long else self.make_review(review, media_id, long=False) for review in reviews])
             cursor = reviews[-1]['cursor']
             print("[DEBUG] Processing %s's Reviews at Cursor: %s..." % (media_id, cursor))
-            reviews = json.loads(requests.get('%s&cursor=%s' % (url, cursor)).text)['result']['list']
+            reviews = requests.get('%s&cursor=%s' % (url, cursor)).json()['result']['list']
         print('[%s] %s Finished.' %
               ('SUCCESS' if self.db.get_reviews_count(media_id, long=long) == total else 'WARNING', media_id))
         return results, cursor
@@ -117,7 +117,7 @@ class BangumiCrawler:
                   self.conf.ANIMES_QUARTER,
                   '' if self.conf.ANIMES_TAG_ID == 0 else self.conf.ANIMES_TAG_ID
               )
-        response = json.loads(requests.get(url, headers=BangumiCrawler.HEADERS).text)
+        response = requests.get(url, headers=BangumiCrawler.HEADERS).json()
         pages = int(response.get("result", {}).get("pages", 0))
         url += '&page=%s'
 
@@ -129,8 +129,7 @@ class BangumiCrawler:
         todo = []
         for i in range(1, pages + 1):
             print('[INFO] Preparing %s/%s...' % (i, pages))
-            raw_results = json.loads(requests.get(url % i, headers=BangumiCrawler.HEADERS).text).get('result', {}) \
-                .get('list', [])
+            raw_results = requests.get(url % i, headers=BangumiCrawler.HEADERS).json().get('result', {}).get('list', [])
             for raw_result in raw_results:
                 todo.append(raw_result)
 
@@ -188,7 +187,8 @@ class BangumiCrawler:
 
 
 if __name__ == '__main__':
-    # print('[INFO] Hello! This is Bangumi-Crawler :)\n[INFO] Task Schedules at %s Everyday.' % conf.CRON_AT)
+    print('[INFO] Hello! This is Bangumi-Crawler :)\n[INFO] Time Now is %s, Task Schedules at %s Everyday.'
+          % (datetime.now(), conf.CRON_AT))
 
     crawler = BangumiCrawler(MongoDB, conf)
     # schedule.every().day.at(conf.CRON_AT).do(crawler.crawl)
