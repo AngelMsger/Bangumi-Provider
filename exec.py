@@ -158,7 +158,7 @@ class BangumiCrawler:
                         print("[WARNING] Decode %s's Response Error, Waiting for Retry...")
                         continue
                 else:
-                    print('[WARNING] Request API Failed, Waiting for Retry, season_id: %s.' % season_id)
+                    print("[WARNING] Request %s's API Failed, Waiting for Retry..." % season_id)
             self.db.persist_animes(results)
             detail_retry += 1
             print('[INFO] %s Try Finished, %s Solved, %s Left.' % (detail_retry, len(results), len(todo)))
@@ -177,7 +177,8 @@ class BangumiCrawler:
                     long_reviews, last_long_reviews_cursor = self.get_bulk_reviews(media_id, last_long_reviews_cursor)
                     short_reviews, last_short_reviews_cursor =\
                         self.get_bulk_reviews(media_id, last_short_reviews_cursor, long=False)
-                except ChunkedEncodingError:
+                except (KeyError, ChunkedEncodingError):
+                    print("[WARNING] Get %s's Reviews Failed, Waiting for Retry..." % media_id)
                     continue
                 self.db.persist_reviews(media_id, long_reviews, last_long_reviews_cursor)
                 self.db.persist_reviews(media_id, short_reviews, last_short_reviews_cursor, long=False)
