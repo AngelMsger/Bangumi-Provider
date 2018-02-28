@@ -5,7 +5,7 @@ from json import JSONDecodeError
 
 import requests
 import schedule
-from requests.exceptions import RequestException
+from requests.exceptions import RequestException, ChunkedEncodingError
 
 from conf import conf
 from db import MongoDB
@@ -173,9 +173,12 @@ class BangumiCrawler:
             print('[INFO] Start Trying %s Times, %s Animes Left.' % (reviews_retry, len(entrances)))
             for entrance in entrances:
                 media_id, last_long_reviews_cursor, last_short_reviews_cursor = entrance
-                long_reviews, last_long_reviews_cursor = self.get_bulk_reviews(media_id, last_long_reviews_cursor)
-                short_reviews, last_short_reviews_cursor = self.get_bulk_reviews(media_id, last_short_reviews_cursor,
-                                                                                 long=False)
+                try:
+                    long_reviews, last_long_reviews_cursor = self.get_bulk_reviews(media_id, last_long_reviews_cursor)
+                    short_reviews, last_short_reviews_cursor =\
+                        self.get_bulk_reviews(media_id, last_short_reviews_cursor, long=False)
+                except ChunkedEncodingError:
+                    continue
                 self.db.persist_reviews(media_id, long_reviews, last_long_reviews_cursor)
                 self.db.persist_reviews(media_id, short_reviews, last_short_reviews_cursor, long=False)
                 entrances.remove(entrance)
@@ -191,10 +194,9 @@ if __name__ == '__main__':
           % (datetime.now(), conf.CRON_AT))
 
     crawler = BangumiCrawler(MongoDB, conf)
-    # schedule.every().day.at(conf.CRON_AT).do(crawler.crawl)
+    schedule.every().day.at(conf.CRON_AT).do(crawler.crawl)
 
-    # while True:
-    #     schedule.run_pending()
-    #     time.sleep(1)
+    while True:
+        schedule.run_pending()
+        time.sleep(1)
 
-    crawler.crawl()
