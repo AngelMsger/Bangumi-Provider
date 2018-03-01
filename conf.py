@@ -15,13 +15,6 @@ class Conf:
     DB_USERNAME = os.environ.get('DB_USERNAME', 'bangumi')
     DB_PASSWORD = os.environ.get('DB_PASSWORD', 'password')
 
-    # Cache Backend
-    CACHE_HOST = os.environ.get('CACHE_HOST', 'redis')
-    CACHE_PORT = os.environ.get('CACHE_PORT', 6379)
-
-    CACHE_ENABLE_AUTH = True if os.environ.get('CACHE_ENABLE_AUTH', 'True').lower() == 'true' else False
-    CACHE_PASSWORD = os.environ.get('CACHE_PASSWORD', 'password')
-
     # Crawler
     # eg. 0 - 全部, 1 - 正片, 3 - 剧场版, 4 - 其他
     CRAWL_VERSION = int(os.environ.get('CRAW_VERSION', 0))

@@ -54,7 +54,7 @@ class BangumiCrawler:
         return result
 
     @staticmethod
-    def make_review(review, media_id, long=True):
+    def make_review(review, media_id, is_long=True):
         author = review['author']
         result = {
             'review_id': int(review['review_id']),
@@ -63,15 +63,15 @@ class BangumiCrawler:
                 'avatar_url': author['avatar'],
                 'uname': author['uname']
             },
-
             'content': review['content'],
             'ctime': datetime.fromtimestamp(int(review['ctime'])),
             'mtime': datetime.fromtimestamp(int(review['mtime'])),
             'likes': int(review['likes']),
             'score': float(review['user_rating']['score']),
-            'media_id': int(media_id)
+            'media_id': int(media_id),
+            'is_long': is_long
         }
-        if long:
+        if is_long:
             result.update({
                 'title': review['title'],
                 'is_origin': bool(review['is_origin']),
@@ -81,8 +81,8 @@ class BangumiCrawler:
             result.update({'last_ep_index': review['user_season']['last_ep_index']})
         return result
 
-    def get_bulk_reviews(self, media_id, cursor, long=True):
-        reviews_type = 'long' if long else 'short'
+    def get_bulk_reviews(self, media_id, cursor, is_long=True):
+        reviews_type = 'long' if is_long else 'short'
         print("[INFO] Getting %s's %s Reviews..." % (media_id, reviews_type))
         url = 'https://bangumi.bilibili.com/review/web_api/%s/list?media_id=%s' % (reviews_type, media_id)
         response = requests.get('%s&cursor=%s' % (url, cursor) if cursor is not None else url)
@@ -91,12 +91,12 @@ class BangumiCrawler:
         results = []
         while len(reviews) > 0:
             results.extend([self.make_review(review, media_id)
-                            if long else self.make_review(review, media_id, long=False) for review in reviews])
+                            if is_long else self.make_review(review, media_id, is_long=False) for review in reviews])
             cursor = reviews[-1]['cursor']
             print("[DEBUG] Processing %s's Reviews at Cursor: %s..." % (media_id, cursor))
             reviews = requests.get('%s&cursor=%s' % (url, cursor)).json()['result']['list']
         print("[%s] Getting %s's %s Reviews Finished." %
-              ('SUCCESS' if self.db.get_reviews_count(media_id, long=long) == total else 'WARNING',
+              ('SUCCESS' if self.db.get_reviews_count(media_id, is_long=is_long) == total else 'WARNING',
                media_id, reviews_type.title()))
         return results, cursor
 
@@ -167,18 +167,24 @@ class BangumiCrawler:
         while len(entrances) > 0 and reviews_retry < max_retry:
             print('[INFO] Start Trying %s Times, %s Animes Left.' % (reviews_retry, len(entrances)))
             for entrance in entrances:
+                is_entrance_finished = True
                 media_id, last_long_reviews_cursor, last_short_reviews_cursor = entrance
                 try:
-                    long_reviews, last_long_reviews_cursor = self.get_bulk_reviews(media_id, last_long_reviews_cursor)
-                    short_reviews, last_short_reviews_cursor =\
-                        self.get_bulk_reviews(media_id, last_short_reviews_cursor, long=False)
+                    reviews, last_long_reviews_cursor = self.get_bulk_reviews(media_id, last_long_reviews_cursor)
+                    self.db.persist_reviews(media_id, reviews, last_long_reviews_cursor)
                 except (KeyError, ChunkedEncodingError):
+                    is_entrance_finished = False
+                    print("[WARNING] Get %s's Long Reviews Failed, Waiting for Retry..." % media_id)
+                try:
+                    reviews, last_short_reviews_cursor =\
+                        self.get_bulk_reviews(media_id, last_short_reviews_cursor, is_long=False)
+                    self.db.persist_reviews(media_id, reviews, last_short_reviews_cursor)
+                except (KeyError, ChunkedEncodingError):
+                    is_entrance_finished = False
                     print("[WARNING] Get %s's Reviews Failed, Waiting for Retry..." % media_id)
-                    continue
-                self.db.persist_reviews(media_id, long_reviews, last_long_reviews_cursor)
-                self.db.persist_reviews(media_id, short_reviews, last_short_reviews_cursor, long=False)
-                entrances.remove(entrance)
-                print("[INFO] Get %s's Reviews Finished." % media_id)
+                if is_entrance_finished:
+                    entrances.remove(entrance)
+                    print("[INFO] Get %s's Reviews Finished." % media_id)
             reviews_retry += 1
 
         print('[SUCCESS] Tasks Finished, %s Left, with (%s, %s) Times Retry.'

@@ -15,13 +15,13 @@ class DB:
     def persist_animes(self, animes) -> None:
         pass
 
-    def persist_reviews(self, media_id, reviews, cursor, long=True) -> None:
+    def persist_reviews(self, media_id, reviews, cursor) -> None:
         pass
 
     def get_all_entrances(self):
         pass
 
-    def get_reviews_count(self, media_id, long=True):
+    def get_reviews_count(self, media_id, is_long=True):
         pass
 
 
@@ -44,7 +44,7 @@ class MongoDB(DB):
                     'favorites': anime['favorites'],
                     'danmaku_count': anime['danmaku_count'],
                     'long_reviews_count': self.get_reviews_count(anime['media_id']),
-                    'short_reviews_count': self.get_reviews_count(anime['media_id'], long=False)
+                    'short_reviews_count': self.get_reviews_count(anime['media_id'], is_long=False)
                 }
                 if 'rating' in anime:
                     archive.update({'rating': anime['rating']})
@@ -58,16 +58,13 @@ class MongoDB(DB):
         for anime in animes:
             self.db.animes.update({'season_id': anime['season_id']}, {'$set': anime}, upsert=True)
 
-    def persist_reviews(self, media_id, reviews, cursor=None, long=True) -> None:
+    def persist_reviews(self, media_id, reviews, cursor=None) -> None:
         if len(reviews) > 0:
-            if long:
-                self.db.long_reviews.insert_many(reviews)
-                if cursor is not None:
-                    self.db.animes.update_one({'media_id': media_id}, {'$set': {'last_long_reviews_cursor': cursor}})
-            else:
-                self.db.short_reviews.insert_many(reviews)
-                if cursor is not None:
-                    self.db.animes.update_one({'media_id': media_id}, {'$set': {'last_short_reviews_cursor': cursor}})
+            self.db.reviews.insert_many(reviews)
+            if cursor is not None:
+                reviews_type = 'long' if reviews[0]['is_long'] else 'short'
+                self.db.animes.update_one({'media_id': media_id},
+                                          {'$set': {'last_%s_reviews_cursor' % reviews_type: cursor}})
 
     def get_all_entrances(self):
         return [(anime['media_id'],
@@ -75,21 +72,11 @@ class MongoDB(DB):
                  anime.get('last_short_reviews_cursor', None)
                  ) for anime in self.db.animes.find()]
 
-    def get_reviews_count(self, media_id, long=True):
+    def get_reviews_count(self, media_id, is_long=True):
         query = {'media_id': media_id}
-        return self.db.long_reviews.count(query) if long else self.db.short_reviews.count(query)
+        return self.db.long_reviews.count(query) if is_long else self.db.short_reviews.count(query)
 
     def __init__(self, conf) -> None:
         self.db = MongoClient(conf.DB_HOST, conf.DB_PORT)[conf.DB_DATABASE]
         if conf.DB_MONGO_ENABLE_AUTH:
             self.db.authenticate(conf.DB_USERNAME, conf.DB_PASSWORD)
-
-
-# Cache Backend Interface
-class Cache:
-    def __init__(self, conf) -> None:
-        super().__init__()
-
-
-class Redis(Cache):
-    pass
