@@ -15,9 +15,8 @@ class BangumiCrawler:
         'X-Requested-With': 'XMLHttpRequest'
     }
 
-    def __init__(self, cache_class, db_class, configuration) -> None:
+    def __init__(self, db_class, configuration) -> None:
         self.conf = configuration
-        self.cache = cache_class(self.conf)
         self.db = db_class(self.conf)
 
     @staticmethod
