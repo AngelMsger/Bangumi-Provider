@@ -4,7 +4,7 @@ from datetime import datetime
 from pymongo import MongoClient
 
 
-# Interface
+# Storage Backend Interface
 class DB:
     def truncate_all(self) -> None:
         pass
@@ -85,4 +85,11 @@ class MongoDB(DB):
             self.db.authenticate(conf.DB_USERNAME, conf.DB_PASSWORD)
 
 
-# TODO: MySQL Support
+# Cache Backend Interface
+class Cache:
+    def __init__(self, conf) -> None:
+        super().__init__()
+
+
+class Redis(Cache):
+    pass

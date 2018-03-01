@@ -2,9 +2,11 @@ version: '3'
 services:
   crawler:
     build: .
-    image: bangumi-crawler
+    image: bangumi-provider
     environment:
-      - DB_MONGO_ENABLE_AUTH=False
-      - DB_HOST=mongo
+      - DB_ENABLE_AUTH=False
+      - CACHE_ENABLE_AUTH=False
+  redis:
+    image: 'redis'
   mongo:
     image: 'mongo'

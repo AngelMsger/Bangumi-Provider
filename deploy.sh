@@ -4,10 +4,10 @@
 docker login -u "$DOCKER_USERNAME" -p "$DOCKER_PASSWORD"
 
 # Generate Image Author/Name/Tag
-image=angelmsger/bangumi-crawler:${TRAVIS_TAG:-latest}
+image=angelmsger/bangumi-provider:${TRAVIS_TAG:-latest}
 
 # Tag Image
-docker tag bangumi-crawler $image
+docker tag bangumi-provider $image
 
 # Push to Registry(Docker Hub)
 docker push $image
