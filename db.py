@@ -29,8 +29,7 @@ class DB:
 class MongoDB(DB):
     def truncate_all(self) -> None:
         self.db.animes.remove({})
-        self.db.long_reviews.remove({})
-        self.db.short_reviews.remove({})
+        self.db.reviews.remove({})
         self.db.archives.remove({})
 
     def archive(self) -> None:
