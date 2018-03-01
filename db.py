@@ -79,5 +79,5 @@ class MongoDB(DB):
 
     def __init__(self, conf) -> None:
         self.db = MongoClient(conf.DB_HOST, conf.DB_PORT)[conf.DB_DATABASE]
-        if conf.DB_MONGO_ENABLE_AUTH:
+        if conf.DB_ENABLE_AUTH:
             self.db.authenticate(conf.DB_USERNAME, conf.DB_PASSWORD)
