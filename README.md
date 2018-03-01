@@ -1,5 +1,5 @@
 # Bangumi-Crawler
-[![Build Status](https://travis-ci.org/AngelMsger/Bangumi-Crawler.svg?branch=master)](https://travis-ci.org/AngelMsger/Bangumi-Crawler)
+[![Build Status](https://travis-ci.org/AngelMsger/Bangumi-Provider.svg?branch=master)](https://travis-ci.org/AngelMsger/Bangumi-Provider)
 
 ![Bangumi-Crawler](https://s1.hdslb.com/bfs/static/jinkela/home/images/bgm-nodata.png)
 
