@@ -16,7 +16,7 @@ class Conf:
     DB_PASSWORD = os.environ.get('DB_PASSWORD', 'password')
 
     # Crawler
-    CRAWL_MAX_RETRY = 32
+    CRAWL_MAX_RETRY = int(os.environ.get('CRAWL_MAX_RETRY', 32))
 
     # eg. 0 - 全部, 1 - 正片, 3 - 剧场版, 4 - 其他
     CRAWL_VERSION = int(os.environ.get('CRAW_VERSION', 0))
