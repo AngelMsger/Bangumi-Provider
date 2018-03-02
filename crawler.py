@@ -99,7 +99,7 @@ class BangumiCrawler:
                media_id, reviews_type.title()))
         return results, cursor
 
-    def crawl(self, full_crawl=False, max_retry=16):
+    def crawl(self, full_crawl=False, max_retry=None):
         print('[INFO] New Crawl Beginning...')
 
         # Get all animes
@@ -127,6 +127,7 @@ class BangumiCrawler:
             for raw_result in raw_results:
                 todo.append(raw_result)
 
+        max_retry = max_retry or self.conf.CRAWL_MAX_RETRY
         # Get detail of animes
         url = 'https://bangumi.bilibili.com/jsonp/seasoninfo/%s.ver?callback=seasonListCallback&jsonp=jsonp'
         detail_retry = 0
