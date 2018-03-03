@@ -39,3 +39,6 @@ Custom `conf.py`.
 ## Todo
 1. MySQL support
 2. Concurrent feature
+
+## Quote
+1. Use [Kaaass](kaaass.net)'s API when auth after v1.3.x.
