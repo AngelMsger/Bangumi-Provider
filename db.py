@@ -36,7 +36,7 @@ class DB:
 class MongoDB(DB):
     def truncate_all(self) -> None:
         self.db.animes.remove({})
-        self.db.reviews.remove({})
+        self.db.authors.remove({})
         self.db.archives.remove({})
 
     def archive(self) -> None:
@@ -80,11 +80,12 @@ class MongoDB(DB):
                  anime.get('last_short_reviews_cursor', None)
                  ) for anime in self.db.animes.find()]
 
-    def get_reviews_count(self, media_id, is_long=None):
-        query = {'media_id': media_id}
-        if is_long is not None:
-            query.update({'is_long': is_long})
-        return self.db.reviews.count(query)
+    # TODO: Update implementation of this method.
+    # def get_reviews_count(self, media_id, is_long=None):
+        # query = {'media_id': media_id}
+        # if is_long is not None:
+        #     query.update({'is_long': is_long})
+        # return self.db.authors.count(query)
 
     def get_author_tasks(self):
         threshold = datetime.now() - timedelta(hours=self.conf.CRAWL_AUTHOR_TTL)
@@ -100,3 +101,12 @@ class MongoDB(DB):
         self.db = MongoClient(conf.DB_HOST, conf.DB_PORT)[conf.DB_DATABASE]
         if conf.DB_ENABLE_AUTH:
             self.db.authenticate(conf.DB_USERNAME, conf.DB_PASSWORD)
+
+        # Init Index
+        collections = set(self.db.collection_names())
+        if 'animes' not in collections:
+            self.db.animes.create_indexes([{'season_id': 1}, {'media_id': 1}])
+        if 'authors' not in collections:
+            self.db.authors.create_indexes([{'mid': 1}, {'reviews.media_id': 1}])
+        if 'archives' not in collections:
+            self.db.archives.create_index({'date': -1, 'archives.media_id': 1})
