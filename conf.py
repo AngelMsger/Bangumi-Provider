@@ -6,8 +6,8 @@ class Conf:
     CRON_AT = os.environ.get('CRON_AT', '3:00')
 
     # Persist Database Backend
-    DB_HOST = os.environ.get('DB_HOST', 'mongo')
-    DB_PORT = os.environ.get('DB_PORT', 27017)
+    DB_HOST = os.environ.get('DB_HOST', 'localhost')
+    DB_PORT = int(os.environ.get('DB_PORT', 27017))
 
     DB_DATABASE = os.environ.get('DB_DATABASE', 'bangumi')
 
@@ -31,9 +31,21 @@ class Conf:
     # eg. 0 - 全部, 117 - 轻改, 81 - 萌系, 70 - 搞笑
     CRAWL_TAG_ID = int(os.environ.get('CRAW_TAG_ID', 0))
 
+    # Author Expired Will Be Considered to Update Next Time (Hour).
+    CRAWL_AUTHOR_TTL = int(os.environ.get('CRAWL_AUTHOR_TTL', 720))
+    CRAWL_AUTHOR_MAX_PER_TIME = int(os.environ.get('CRAWL_AUTHOR_MAX_PER_TIME', 50000))
+
+    # Risky, **DO NOT** Use Your Own Account.
+    CRAWL_USERNAME = os.environ.get('CRAWL_USERNAME', 'bangumi')
+    CRAWL_PASSWORD = os.environ.get('CRAWL_USERNAME', 'password')
+
 
 class Dev(Conf):
+    DB_ENABLE_AUTH = False
+
+
+class Prod(Conf):
     pass
 
 
-conf = Dev
+conf = Prod

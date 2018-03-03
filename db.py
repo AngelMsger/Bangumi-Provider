@@ -1,5 +1,6 @@
 from datetime import date
 from datetime import datetime
+from datetime import timedelta
 
 from pymongo import MongoClient
 
@@ -15,13 +16,19 @@ class DB:
     def persist_animes(self, animes) -> None:
         pass
 
-    def persist_reviews(self, media_id, reviews, cursor) -> None:
+    def persist_reviews(self, media_id, reviews, cursor=None, is_long=True) -> None:
         pass
 
     def get_all_entrances(self):
         pass
 
     def get_reviews_count(self, media_id, is_long=True):
+        pass
+
+    def get_author_tasks(self):
+        pass
+
+    def push_to_follow(self, mid, season_ids):
         pass
 
 
@@ -55,15 +62,17 @@ class MongoDB(DB):
 
     def persist_animes(self, animes) -> None:
         for anime in animes:
-            self.db.animes.update({'season_id': anime['season_id']}, {'$set': anime}, upsert=True)
+            self.db.animes.update_one({'season_id': anime['season_id']}, {'$set': anime}, upsert=True)
 
-    def persist_reviews(self, media_id, reviews, cursor=None) -> None:
-        if len(reviews) > 0:
-            self.db.reviews.insert_many(reviews)
-            if cursor is not None:
-                reviews_type = 'long' if reviews[0]['is_long'] else 'short'
-                self.db.animes.update_one({'media_id': media_id},
-                                          {'$set': {'last_%s_reviews_cursor' % reviews_type: cursor}})
+    def persist_reviews(self, media_id, reviews, cursor=None, is_long=True) -> None:
+        for review in reviews:
+            author = review.pop('author')
+            self.db.authors.update_one({'mid': author['mid']},
+                                       {'$set': author, '$push': {'reviews': review}}, upsert=True)
+        if cursor is not None:
+            reviews_type = 'long' if is_long else 'short'
+            self.db.animes.update_one({'media_id': media_id},
+                                      {'$set': {'last_%s_reviews_cursor' % reviews_type: cursor}})
 
     def get_all_entrances(self):
         return [(anime['media_id'],
@@ -77,7 +86,17 @@ class MongoDB(DB):
             query.update({'is_long': is_long})
         return self.db.reviews.count(query)
 
+    def get_author_tasks(self):
+        threshold = datetime.now() - timedelta(hours=self.conf.CRAWL_AUTHOR_TTL)
+        return self.db.authors.find({
+            'last_update': {'$not': {'$gt': threshold}}
+        }, {'mid': 1}).limit(self.conf.CRAWL_AUTHOR_MAX_PER_TIME)
+
+    def push_to_follow(self, mid, season_ids):
+        self.db.authors.update_one({'mid': mid}, {'$set': {'follow': season_ids, 'last_update': datetime.now()}})
+
     def __init__(self, conf) -> None:
+        self.conf = conf
         self.db = MongoClient(conf.DB_HOST, conf.DB_PORT)[conf.DB_DATABASE]
         if conf.DB_ENABLE_AUTH:
             self.db.authenticate(conf.DB_USERNAME, conf.DB_PASSWORD)
