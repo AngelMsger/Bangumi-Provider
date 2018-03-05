@@ -2,7 +2,7 @@ from datetime import date
 from datetime import datetime
 from datetime import timedelta
 
-from pymongo import MongoClient
+from pymongo import MongoClient, IndexModel, ASCENDING, DESCENDING
 
 
 # Storage Backend Interface
@@ -105,8 +105,12 @@ class MongoDB(DB):
         # Init Index
         collections = set(self.db.collection_names())
         if 'animes' not in collections:
-            self.db.animes.create_indexes([{'season_id': 1}, {'media_id': 1}])
+            animes_index_0 = IndexModel([('season_id', ASCENDING)])
+            animes_index_1 = IndexModel([('media_id', ASCENDING)])
+            self.db.animes.create_indexes([animes_index_0, animes_index_1])
         if 'authors' not in collections:
-            self.db.authors.create_indexes([{'mid': 1}, {'reviews.media_id': 1}])
+            authors_index_0 = IndexModel([('mid', ASCENDING)])
+            authors_index_1 = IndexModel([('reviews.media_id', ASCENDING)])
+            self.db.authors.create_indexes([authors_index_0, authors_index_1])
         if 'archives' not in collections:
-            self.db.archives.create_index({'date': -1, 'archives.media_id': 1})
+            self.db.archives.create_index([('date', DESCENDING), ('archives.media_id', ASCENDING)])
