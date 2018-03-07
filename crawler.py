@@ -85,22 +85,25 @@ class BangumiCrawler:
         return result
 
     def auth(self, username=None, password=None):
-        threshold = datetime.now() - timedelta(microseconds=300)
-        if not self.auth_status['done'] or self.auth_status['last_update'] < threshold:
+        if self.auth_status['done'] and self.auth_status['last_update'] > datetime.now() - timedelta(seconds=180):
+            return False
+        else:
             username = username or self.conf.CRAWL_USERNAME
             password = password or self.conf.CRAWL_PASSWORD
             try:
-                access_key = requests.post('https://api.kaaass.net/biliapi/user/login', data={
-                    'user': username, 'passwd': password
-                }).json()['access_key']
-                response = requests.get('https://api.kaaass.net/biliapi/user/sso?access_key=%s' % access_key).json()
+                if ('access_key' not in self.auth_status) or\
+                        (self.auth_status['last_update'] < datetime.now() - timedelta(days=7)):
+                    self.auth_status['access_key'] = requests.post('https://api.kaaass.net/biliapi/user/login', data={
+                        'user': username, 'passwd': password
+                    }).json()['access_key']
+
+                response = requests.get('https://api.kaaass.net/biliapi/user/sso?access_key=%s' %
+                                        self.auth_status['access_key']).json()
                 if response['status'] == 'OK':
                     self.HEADERS.update({'Cookie': response['cookie']})
                     return True
             except (RequestException, JSONDecodeError, KeyError):
                 return False
-        else:
-            return False
 
     def get_bulk_reviews(self, media_id, cursor, is_long=True):
         reviews_type = 'long' if is_long else 'short'
@@ -117,10 +120,6 @@ class BangumiCrawler:
             print("[DEBUG] Processing %s's Reviews at Cursor: %s..." % (media_id, cursor))
             reviews = requests.get('%s&cursor=%s' % (url, cursor), headers=self.HEADERS).json()['result']['list']
 
-        # TODO: Implement get_reviews_count.
-        # print("[%s] Getting %s's %s Reviews Finished." %
-        #       ('SUCCESS' if self.db.get_reviews_count(media_id, is_long=is_long) == total else 'WARNING',
-        #        media_id, reviews_type.title()))
         print("[INFO] Getting %s's Reviews Finished.")
 
         return results, cursor
@@ -205,8 +204,9 @@ class BangumiCrawler:
         response = requests.get(url, headers=self.HEADERS).json()
         if not response['status']:
             if response['data'] == '获取登录数据失败':
-                print('[WARNING] API Request Failed, Try to Auth...')
+                print("[WARNING] %s's API Request Failed, Try to Auth..." % mid)
                 if self.auth():
+                    print('[INFO] Auth Success.')
                     return self.get_author_follow(mid, page_index, max_retry, retry=retry + 1)
                 else:
                     raise RuntimeError('Auth Failed.')
@@ -233,7 +233,7 @@ class BangumiCrawler:
                     tasks.remove(mid)
                     print("[INFO] Get %s's Follow Finished." % mid)
                 except (RequestException, RuntimeError) as e:
-                    print("[INFO] Get %s's Follow Failed, Waiting for Retry...(%s)" % (mid, e))
+                    print("[WARNING] Get %s's Follow Failed, Waiting for Retry...(%s)" % (mid, e))
                     continue
             retry += 1
         return len(tasks), retry
@@ -261,7 +261,7 @@ class BangumiCrawler:
             self.db.truncate_all()
 
         todo = []
-        for i in range(1, pages + 1):
+        for i in range(101, pages + 1):
             print('[INFO] Preparing %s/%s...' % (i, pages))
             raw_results = requests.get(url % i, headers=self.HEADERS).json().get('result', {}).get('list', [])
             for raw_result in raw_results:

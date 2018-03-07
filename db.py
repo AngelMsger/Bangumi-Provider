@@ -22,10 +22,10 @@ class DB:
     def get_all_entrances(self):
         pass
 
-    def get_reviews_count(self, media_id, is_long=True):
+    def get_author_tasks(self):
         pass
 
-    def get_author_tasks(self):
+    def get_reviews_count(self, media_id, is_long=True):
         pass
 
     def push_to_follow(self, mid, season_ids):
@@ -80,18 +80,19 @@ class MongoDB(DB):
                  anime.get('last_short_reviews_cursor', None)
                  ) for anime in self.db.animes.find()]
 
-    # TODO: Update implementation of this method.
-    # def get_reviews_count(self, media_id, is_long=None):
-        # query = {'media_id': media_id}
-        # if is_long is not None:
-        #     query.update({'is_long': is_long})
-        # return self.db.authors.count(query)
-
     def get_author_tasks(self):
         threshold = datetime.now() - timedelta(hours=self.conf.CRAWL_AUTHOR_TTL)
         return self.db.authors.find({
             'last_update': {'$not': {'$gt': threshold}}
         }, {'mid': 1}).limit(self.conf.CRAWL_AUTHOR_MAX_PER_TIME)
+
+    def get_reviews_count(self, media_id, is_long=True):
+        result = 0
+        authors = self.db.authors.find()
+        for author in authors:
+            result += len([review for review in author['reviews']
+                           if review['media_id'] == media_id and review['is_long'] == is_long])
+        return result
 
     def push_to_follow(self, mid, season_ids):
         self.db.authors.update_one({'mid': mid}, {'$set': {'follow': season_ids, 'last_update': datetime.now()}})

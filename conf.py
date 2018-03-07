@@ -15,6 +15,11 @@ class Conf:
     DB_USERNAME = os.environ.get('DB_USERNAME', 'bangumi')
     DB_PASSWORD = os.environ.get('DB_PASSWORD', 'password')
 
+    CACHE_HOST = os.environ.get('DB_HOST', 'localhost')
+    CACHE_PORT = int(os.environ.get('CACHE_PORT', 6379))
+
+    CACHE_ENABLE_AUTH = False if os.environ.get('DB_ENABLE_AUTH', 'False').lower() == 'false' else True
+
     # Crawler
     CRAWL_MAX_RETRY = int(os.environ.get('CRAWL_MAX_RETRY', 32))
 
@@ -48,4 +53,4 @@ class Prod(Conf):
     pass
 
 
-conf = Prod
+conf = Dev
