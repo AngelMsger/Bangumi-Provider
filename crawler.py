@@ -263,7 +263,7 @@ class BangumiCrawler:
             self.db.truncate_all()
 
         todo = []
-        for i in range(101, pages + 1):
+        for i in range(1, pages + 1):
             print('[INFO] Preparing %s/%s...' % (i, pages))
             raw_results = requests.get(url % i, headers=self.HEADERS).json().get('result', {}).get('list', [])
             for raw_result in raw_results:
