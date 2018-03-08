@@ -282,5 +282,9 @@ class BangumiCrawler:
         else:
             authors_left = authors_retry = 0
 
+        print('[INFO] Archiving...')
+        self.db.archive()
+        print('[SUCCESS] Archive Finished.')
+
         print('[SUCCESS] Tasks Finished, (%s, %s, %s) Left, with (%s, %s, %s) Times Retry.'
               % (todo_left, reviews_left, authors_left, detail_retry, reviews_retry, authors_retry))
