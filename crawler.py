@@ -276,7 +276,11 @@ class BangumiCrawler:
         max_retry = max_retry or self.conf.CRAWL_MAX_RETRY
         todo_left, detail_retry = self.process_animes(todo, max_retry)
         reviews_left, reviews_retry = self.process_reviews(max_retry)
-        authors_left, authors_retry = self.process_authors(max_retry)
+
+        if self.conf.CRAWL_AUTHOR_FOLLOW:
+            authors_left, authors_retry = self.process_authors(max_retry)
+        else:
+            authors_left = authors_retry = 0
 
         print('[SUCCESS] Tasks Finished, (%s, %s, %s) Left, with (%s, %s, %s) Times Retry.'
               % (todo_left, reviews_left, authors_left, detail_retry, reviews_retry, authors_retry))

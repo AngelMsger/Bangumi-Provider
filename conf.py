@@ -32,6 +32,7 @@ class Conf:
     CRAWL_TAG_ID = int(os.environ.get('CRAW_TAG_ID', 0))
 
     # Author Expired Will Be Considered to Update Next Time (Hour).
+    CRAWL_AUTHOR_FOLLOW = False if os.environ.get('CRAWL_AUTHOR_FOLLOW', 'False') else True
     CRAWL_AUTHOR_TTL = int(os.environ.get('CRAWL_AUTHOR_TTL', 720))
     CRAWL_AUTHOR_MAX_PER_TIME = int(os.environ.get('CRAWL_AUTHOR_MAX_PER_TIME', 50000))
 
