@@ -269,7 +269,7 @@ class BangumiCrawler:
                     raw_results = requests.get(url % i, headers=self.HEADERS).json().get('result', {}).get('list', [])
                     break
                 except RequestException:
-                    print('[WARNING] Get %s Todo Failed, Waiting for Retry...')
+                    print('[WARNING] Get %s Todo Failed, Waiting for Retry...' % i)
             for raw_result in raw_results:
                 todo.append(raw_result)
 
