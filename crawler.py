@@ -256,7 +256,6 @@ class BangumiCrawler:
               )
         response = requests.get(url, headers=self.HEADERS).json()
         pages = int(response.get("result", {}).get("pages", 0))
-        print('[DEBUG] Pages = %s' % pages)
         url += '&page=%s'
 
         if full_crawl:
@@ -265,7 +264,12 @@ class BangumiCrawler:
         todo = []
         for i in range(1, pages + 1):
             print('[INFO] Preparing %s/%s...' % (i, pages))
-            raw_results = requests.get(url % i, headers=self.HEADERS).json().get('result', {}).get('list', [])
+            while True:
+                try:
+                    raw_results = requests.get(url % i, headers=self.HEADERS).json().get('result', {}).get('list', [])
+                    break
+                except RequestException:
+                    print('[WARNING] Get %s Todo Failed, Waiting for Retry...')
             for raw_result in raw_results:
                 todo.append(raw_result)
 
