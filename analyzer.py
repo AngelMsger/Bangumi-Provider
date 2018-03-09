@@ -14,11 +14,11 @@ class BangumiAnalyzer:
     def get_animes_authors_refs_matrix(self):
         authors_count = self.db.get_authors_count()
         media_ids, scores = [], []
-        media_id_index, cur = {}, 0
+        media_id_indexes, cur = {}, 0
         for media_id, score in self.db.get_all_anime_score_pairs():
             media_ids.append(media_id)
             scores.append(score)
-            media_id_index[str(media_id)] = cur
+            media_id_indexes[str(media_id)] = cur
             cur += 1
 
         mat = np.repeat(scores, authors_count).reshape(len(media_ids), authors_count).T
@@ -29,9 +29,13 @@ class BangumiAnalyzer:
             mids.append(mid)
 
             for review in reviews:
-                mat[cur, media_id_index[str(review['media_id'])]] = review['score']
+                index = str(review['media_id'])
+                if index in media_id_indexes:
+                    mat[cur, media_id_indexes[index]] = review['score']
             for media_id in follow_media_ids:
-                mat[cur, media_id_index[str(media_id)]] *= 1.05
+                index = str(media_id)
+                if index in media_id_indexes:
+                    mat[cur, media_id_indexes[index]] *= 1.05
 
             cur += 1
 
@@ -47,7 +51,7 @@ class BangumiAnalyzer:
         _, cols_count = animes_authors_refs_matrix.shape
         mat = np.zeros((cols_count, cols_count))
         for i in range(0, cols_count):
-            for j in (i + 1, cols_count):
+            for j in range(i + 1, cols_count):
                 mat[i, j] = BangumiAnalyzer.calc_similarity(animes_authors_refs_matrix[:, i],
                                                             animes_authors_refs_matrix[:, j])
         mat += mat.T
@@ -64,9 +68,9 @@ class BangumiAnalyzer:
 
         print('[INFO] Calculating Animes Similarity Matrix...')
         animes_sim_mat = self.get_similarity_matrix(ref_mat)
-        print('[SUCCESS] Animes Similarity Matrix %s Calculated.' % animes_sim_mat.shape)
+        print('[SUCCESS] Animes Similarity Matrix %s Calculated.' % str(animes_sim_mat.shape))
         animes_sim_indexes_mat = animes_sim_mat.argsort()[:, 0 - self.conf.ANALYZE_ANIMES_SIMILARITY_COUNT:]
-        print('[INFO] Animes Sim-Indexes %s Get Finished.' % animes_sim_indexes_mat.shape)
+        print('[INFO] Animes Sim-Indexes %s Get Finished.' % str(animes_sim_indexes_mat.shape))
 
         cur = 0
         for anime_sim_indexes in animes_sim_indexes_mat:
@@ -80,9 +84,9 @@ class BangumiAnalyzer:
         if self.conf.ANALYZE_ENABLE_AUTHOR_SIMILARITY:
             print('[INFO] Calculating Authors Similarity Matrix...')
             authors_sim_mat = self.get_similarity_matrix(ref_mat.T)
-            print('[SUCCESS] Authors Similarity Matrix %s Calculated.' % authors_sim_mat.shape)
+            print('[SUCCESS] Authors Similarity Matrix %s Calculated.' % str(authors_sim_mat.shape))
             authors_sim_indexes_mat = animes_sim_mat.argsort()[:, 0 - self.conf.ANALYZE_AUTHORS_SIMILARITY_COUNT:]
-            print('[INFO] Authors Sim-Indexes %s Get Finished.' % authors_sim_indexes_mat.shape)
+            print('[INFO] Authors Sim-Indexes %s Get Finished.' % str(authors_sim_indexes_mat.shape))
 
             cur = 0
             for author_sim_indexes in authors_sim_indexes_mat:
