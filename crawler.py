@@ -262,7 +262,7 @@ class BangumiCrawler:
             self.db.truncate_all()
 
         todo = []
-        for i in range(100, pages + 1):
+        for i in range(1, pages + 1):
             print('[INFO] Preparing %s/%s...' % (i, pages))
             while True:
                 try:

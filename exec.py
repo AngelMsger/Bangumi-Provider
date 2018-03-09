@@ -17,7 +17,7 @@ if __name__ == '__main__':
     analyzer = BangumiAnalyzer(client, conf)
 
     def jobs():
-        # crawler.crawl()
+        crawler.crawl()
         analyzer.analyze()
 
 

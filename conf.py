@@ -55,4 +55,4 @@ class Prod(Conf):
     pass
 
 
-conf = Dev
+conf = Prod
