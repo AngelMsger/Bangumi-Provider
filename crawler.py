@@ -15,9 +15,9 @@ class BangumiCrawler:
         'X-Requested-With': 'XMLHttpRequest'
     }
 
-    def __init__(self, db_class, conf) -> None:
+    def __init__(self, db, conf) -> None:
         self.conf = conf
-        self.db = db_class(self.conf)
+        self.db = db
         self.auth_status = {
             'done': False,
             'last_update': datetime.now()
@@ -286,5 +286,5 @@ class BangumiCrawler:
         self.db.archive()
         print('[SUCCESS] Archive Finished.')
 
-        print('[SUCCESS] Tasks Finished, (%s, %s, %s) Left, with (%s, %s, %s) Times Retry.'
+        print('[SUCCESS] Crawling Tasks Finished, (%s, %s, %s) Left, with (%s, %s, %s) Times Retry.'
               % (todo_left, reviews_left, authors_left, detail_retry, reviews_retry, authors_retry))

@@ -43,6 +43,12 @@ class DB:
     def push_to_follow(self, mid, season_ids):
         pass
 
+    def update_anime_top_matches(self, media_id, top_matches):
+        pass
+
+    def update_author_top_matches(self, mid, top_matches):
+        pass
+
 
 # Persist solution for MongoDB
 class MongoDB(DB):
@@ -106,9 +112,13 @@ class MongoDB(DB):
             return ((anime['media_id'], anime['rating']['score'] if 'rating' in anime else None)
                     for anime in self.db.animes.find())
 
+    def get_media_id(self, season_id):
+        return self.db.animes.find_one({'season_id': season_id}, {'media_id': 1})['media_id']
+
     def get_all_author_ratings_follow_pair(self):
         return ((author['mid'], [review for review in author['reviews']],
-                 [season_id for season_id in author.get('follow', [])]) for author in self.db.authors.find())
+                 [self.get_media_id(season_id) for season_id in author.get('follow', [])])
+                for author in self.db.authors.find())
 
     def get_animes_count(self, has_rating=True):
         query = {'rating': {'$exists': True}} if has_rating else {}
@@ -128,9 +138,16 @@ class MongoDB(DB):
     def push_to_follow(self, mid, season_ids):
         self.db.authors.update_one({'mid': mid}, {'$set': {'follow': season_ids, 'last_update': datetime.now()}})
 
+    def update_anime_top_matches(self, media_id, top_matches):
+        self.db.animes.update_one({'media_id': media_id}, {'$set': {'top_matches': top_matches}})
+
+    def update_author_top_matches(self, mid, top_matches):
+        self.db.authors.update_one({'mid': mid}, {'$set': {'top_matches': top_matches}})
+
     def __init__(self, conf) -> None:
         self.conf = conf
-        self.db = MongoClient(conf.DB_HOST, conf.DB_PORT)[conf.DB_DATABASE]
+        self.client = MongoClient(conf.DB_HOST, conf.DB_PORT)
+        self.db = self.client[conf.DB_DATABASE]
         if conf.DB_ENABLE_AUTH:
             self.db.authenticate(conf.DB_USERNAME, conf.DB_PASSWORD)
 
@@ -146,3 +163,6 @@ class MongoDB(DB):
             self.db.authors.create_indexes([authors_index_0, authors_index_1])
         if 'archives' not in collections:
             self.db.archives.create_index([('date', DESCENDING), ('archives.media_id', ASCENDING)])
+
+    def __del__(self) -> None:
+        self.client.close()

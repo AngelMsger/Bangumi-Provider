@@ -40,6 +40,12 @@ class Conf:
     CRAWL_USERNAME = os.environ.get('CRAWL_USERNAME', 'bangumi')
     CRAWL_PASSWORD = os.environ.get('CRAWL_USERNAME', 'password')
 
+    # Analyzer
+    ANALYZE_ANIMES_SIMILARITY_COUNT = int(os.environ.get('ANALYZE_ANIMES_SIMILARITY_COUNT', 8))
+
+    ANALYZE_ENABLE_AUTHOR_SIMILARITY = False if os.environ.get('ANALYZE_ENABLE_AUTHOR_SIMILARITY', 'False') else True
+    ANALYZE_AUTHORS_SIMILARITY_COUNT = int(os.environ.get('ANALYZE_AUTHORS_SIMILARITY_COUNT', 64))
+
 
 class Dev(Conf):
     DB_ENABLE_AUTH = False
