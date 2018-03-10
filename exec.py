@@ -20,7 +20,6 @@ if __name__ == '__main__':
         crawler.crawl()
         analyzer.analyze()
 
-
     if conf == Dev:
         print('[INFO] Running with Dev Enabled, Start Task Directly.')
         jobs()

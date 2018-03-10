@@ -2,7 +2,7 @@ import numpy as np
 
 from scipy.stats import pearsonr
 
-from utils import log_duration
+from utils import log_duration, logger
 
 
 class BangumiAnalyzer:
@@ -59,18 +59,18 @@ class BangumiAnalyzer:
         return mat
 
     def analyze(self):
-        print('[INFO] New Analyze Beginning...')
+        logger.info('New Analyze Beginning...')
 
-        print('[INFO] Getting Ref Matrix...')
+        logger.info('Getting Ref Matrix...')
         ref_mat, media_ids, mids = self.get_animes_authors_refs_matrix()
-        print('[SUCCESS] Ref Matrix %s Got, with %s Medias and %s Authors.'
-              % (ref_mat.shape, len(media_ids), len(mids)))
+        logger.info('Ref Matrix %s Got, with %s Medias and %s Authors.'
+                    % (ref_mat.shape, len(media_ids), len(mids)))
 
-        print('[INFO] Calculating Animes Similarity Matrix...')
+        logger.info('Calculating Animes Similarity Matrix...')
         animes_sim_mat = self.get_similarity_matrix(ref_mat)
-        print('[SUCCESS] Animes Similarity Matrix %s Calculated.' % str(animes_sim_mat.shape))
+        logger.info('Animes Similarity Matrix %s Calculated.' % str(animes_sim_mat.shape))
         animes_sim_indexes_mat = animes_sim_mat.argsort()[:, 0 - self.conf.ANALYZE_ANIMES_SIMILARITY_COUNT:]
-        print('[INFO] Animes Sim-Indexes %s Get Finished.' % str(animes_sim_indexes_mat.shape))
+        logger.info('Animes Sim-Indexes %s Get Finished.' % str(animes_sim_indexes_mat.shape))
 
         cur = 0
         for anime_sim_indexes in animes_sim_indexes_mat:
@@ -79,19 +79,18 @@ class BangumiAnalyzer:
                 'similarity': animes_sim_mat[cur, index]
             } for index in anime_sim_indexes])
             cur += 1
-        print('[SUCCESS] Animes Top-Matches Persisted.')
+        logger.info('Animes Top-Matches Persisted.')
 
-        if self.conf.ANALYZE_ENABLE_AUTHOR_SIMILARITY:
-            print('[INFO] Calculating Authors Similarity Matrix...')
-            authors_sim_mat = self.get_similarity_matrix(ref_mat.T)
-            print('[SUCCESS] Authors Similarity Matrix %s Calculated.' % str(authors_sim_mat.shape))
-            authors_sim_indexes_mat = animes_sim_mat.argsort()[:, 0 - self.conf.ANALYZE_AUTHORS_SIMILARITY_COUNT:]
-            print('[INFO] Authors Sim-Indexes %s Get Finished.' % str(authors_sim_indexes_mat.shape))
+        logger.info('Calculating Authors Similarity Matrix...')
+        authors_sim_mat = self.get_similarity_matrix(ref_mat.T)
+        logger.info('Authors Similarity Matrix %s Calculated.' % str(authors_sim_mat.shape))
+        authors_sim_indexes_mat = animes_sim_mat.argsort()[:, 0 - self.conf.ANALYZE_AUTHORS_SIMILARITY_COUNT:]
+        logger.info('Authors Sim-Indexes %s Get Finished.' % str(authors_sim_indexes_mat.shape))
 
-            cur = 0
-            for author_sim_indexes in authors_sim_indexes_mat:
-                self.db.update_author_top_matches(mids[cur], [{
-                    'mid': mids[index],
-                    'similarity': authors_sim_mat[cur, index]
-                } for index in author_sim_indexes])
-            print('[SUCCESS] Authors Top-Matches Persisted.')
+        cur = 0
+        for author_sim_indexes in authors_sim_indexes_mat:
+            self.db.update_author_top_matches(mids[cur], [{
+                'mid': mids[index],
+                'similarity': authors_sim_mat[cur, index]
+            } for index in author_sim_indexes])
+        logger.info('Authors Top-Matches Persisted.')

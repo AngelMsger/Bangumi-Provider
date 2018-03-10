@@ -5,6 +5,8 @@ from json import JSONDecodeError
 import requests
 from requests.exceptions import RequestException
 
+from utils import logger
+
 
 class BangumiCrawler:
     HEADERS = {
@@ -29,7 +31,7 @@ class BangumiCrawler:
         try:
             detail = json.loads(detail_response.text[19:-2])['result']
         except JSONDecodeError:
-            print('[DEBUG] Could Not Decode %s.' % detail_response.text)
+            logger.warning('Could Not Decode %s.' % detail_response.text)
             return None
         media = detail['media']
         result = {
@@ -91,7 +93,7 @@ class BangumiCrawler:
             username = username or self.conf.CRAWL_USERNAME
             password = password or self.conf.CRAWL_PASSWORD
             try:
-                if ('access_key' not in self.auth_status) or\
+                if ('access_key' not in self.auth_status) or \
                         (self.auth_status['last_update'] < datetime.now() - timedelta(days=7)):
                     self.auth_status['access_key'] = requests.post('https://api.kaaass.net/biliapi/user/login', data={
                         'user': username, 'passwd': password
@@ -107,7 +109,7 @@ class BangumiCrawler:
 
     def get_bulk_reviews(self, media_id, cursor, is_long=True):
         reviews_type = 'long' if is_long else 'short'
-        print("[INFO] Getting %s's %s Reviews..." % (media_id, reviews_type))
+        logger.info("Getting %s's %s Reviews..." % (media_id, reviews_type))
         url = 'https://bangumi.bilibili.com/review/web_api/%s/list?media_id=%s' % (reviews_type, media_id)
         response = requests.get('%s&cursor=%s' % (url, cursor) if cursor is not None else url, headers=self.HEADERS)
         result = response.json()['result']
@@ -117,13 +119,10 @@ class BangumiCrawler:
             results.extend([self.make_review(review, media_id)
                             if is_long else self.make_review(review, media_id, is_long=False) for review in reviews])
             cursor = reviews[-1]['cursor']
-            print("[DEBUG] Processing %s's Reviews at Cursor: %s..." % (media_id, cursor))
+            logger.debug("Processing %s's Reviews at Cursor: %s..." % (media_id, cursor))
             reviews = requests.get('%s&cursor=%s' % (url, cursor), headers=self.HEADERS).json()['result']['list']
 
-        print("[%s] Getting %s's %s Reviews Finished." %
-              ('SUCCESS' if self.db.get_reviews_count(media_id, is_long=is_long) == total else 'WARNING',
-               media_id, reviews_type.title()))
-
+        logger.info("Getting %s's %s Reviews Finished." % (media_id, reviews_type.title()))
         return results, cursor
 
     def process_animes(self, todo, max_retry):
@@ -131,15 +130,15 @@ class BangumiCrawler:
         Get Detail of Animes and Persist.
         """
 
-        print('[INFO] Getting Animes...')
+        logger.info('Getting Animes...')
         url = 'https://bangumi.bilibili.com/jsonp/seasoninfo/%s.ver?callback=seasonListCallback&jsonp=jsonp'
         retry = 0
         while len(todo) > 0 and retry < max_retry:
-            print('[INFO] Start Trying %s Times, %s Animes Left.' % (retry, len(todo)))
+            logger.info('Start Trying %s Times, %s Animes Left.' % (retry, len(todo)))
             results = []
             for raw_result in todo:
                 season_id = int(raw_result['season_id'])
-                print('[INFO] Processing %s...' % season_id)
+                logger.debug('Processing %s...' % season_id)
                 try:
                     detail_response = requests.get(url % season_id, headers={
                         'Referer': 'https://bangumi.bilibili.com/anime/%s' % season_id
@@ -151,17 +150,16 @@ class BangumiCrawler:
                     if result is not None:
                         results.append(result)
                         todo.remove(raw_result)
-                        print('[INFO] %s Processed.' % season_id)
+                        logger.info('%s Processed.' % season_id)
                     else:
-                        print("[WARNING] Decode %s's Response Error, Waiting for Retry...")
+                        logger.warning("Decode %s's Response Error, Waiting for Retry...")
                         continue
                 else:
-                    print("[WARNING] Request %s's API Failed, Waiting for Retry..." % season_id)
+                    logger.warning("Request %s's API Failed, Waiting for Retry..." % season_id)
             self.db.persist_animes(results)
             retry += 1
-            print('[INFO] %s Try Finished, %s Solved, %s Left.' % (retry, len(results), len(todo)))
-        print('[%s] Getting Detail Finished, %s.' % ('SUCCESS', 'no error.')
-              if len(todo) == 0 else ('WARNING', 'with %s errors.' % len(todo)))
+            logger.info('%s Try Finished, %s Solved, %s Left.' % (retry, len(results), len(todo)))
+        logger.info('Getting Detail Finished, with %s Errors.' % len(todo))
         return len(todo), retry
 
     def process_reviews(self, max_retry):
@@ -169,46 +167,50 @@ class BangumiCrawler:
         Get reviews of animes
         """
 
-        print('[INFO] Getting Reviews...')
+        logger.info('Getting Reviews...')
         retry = 0
         entrances = self.db.get_all_entrances()
         while len(entrances) > 0 and retry < max_retry:
-            print('[INFO] Start Trying %s Times, %s Animes Left.' % (retry, len(entrances)))
+            logger.info('Start Trying %s Times, %s Animes Left.' % (retry, len(entrances)))
             for entrance in entrances:
                 is_entrance_finished = True
-                media_id, last_long_reviews_cursor, last_short_reviews_cursor = entrance
+
                 try:
-                    reviews, last_long_reviews_cursor = self.get_bulk_reviews(media_id, last_long_reviews_cursor)
-                    self.db.persist_reviews(media_id, reviews, last_long_reviews_cursor)
+                    reviews, last_long_reviews_cursor = self.get_bulk_reviews(entrance['media_id'],
+                                                                              entrance['last_long_reviews_cursor'])
+                    self.db.persist_reviews(entrance['media_id'], reviews, last_long_reviews_cursor)
+                    entrance['last_long_reviews_cursor'] = last_long_reviews_cursor
                 except (KeyError, RequestException):
                     is_entrance_finished = False
-                    print("[WARNING] Get %s's Long Reviews Failed, Waiting for Retry..." % media_id)
+                    logger.warning("Get %s's Long Reviews Failed, Waiting for Retry..." % entrance['media_id'])
                 try:
                     reviews, last_short_reviews_cursor = \
-                        self.get_bulk_reviews(media_id, last_short_reviews_cursor, is_long=False)
-                    self.db.persist_reviews(media_id, reviews, last_short_reviews_cursor, is_long=False)
+                        self.get_bulk_reviews(entrance['media_id'], entrance['last_short_reviews_cursor'],
+                                              is_long=False)
+                    self.db.persist_reviews(entrance['media_id'], reviews, last_short_reviews_cursor, is_long=False)
+                    entrance['last_short_reviews_cursor'] = last_short_reviews_cursor
                 except (KeyError, RequestException):
                     is_entrance_finished = False
-                    print("[WARNING] Get %s's Reviews Failed, Waiting for Retry..." % media_id)
+                    logger.warning("Get %s's Reviews Failed, Waiting for Retry..." % entrance['media_id'])
                 if is_entrance_finished:
                     entrances.remove(entrance)
-                    print("[INFO] Get %s's Reviews Finished." % media_id)
+                    logger.info("Get %s's Reviews Finished." % entrance['media_id'])
             retry += 1
         return len(entrances), retry
 
     def get_author_follow(self, mid, page_index, max_retry, retry=1):
         if retry >= max_retry:
-            print("[ERROR] Cannot Get %s's Information After Try %s Times." % (mid, retry))
+            logger.error("Cannot Get %s's Information After Try %s Times." % (mid, retry))
             return 0, []
 
-        url = 'https://space.bilibili.com/ajax/Bangumi/getList?mid=%s' %\
+        url = 'https://space.bilibili.com/ajax/Bangumi/getList?mid=%s' % \
               (mid if page_index is None else '%s&page=%s' % (mid, page_index))
         response = requests.get(url, headers=self.HEADERS).json()
         if not response['status']:
             if response['data'] == '获取登录数据失败':
-                print("[WARNING] %s's API Request Failed, Try to Auth..." % mid)
+                logger.warning("%s's API Request Failed, Try to Auth..." % mid)
                 if self.auth():
-                    print('[INFO] Auth Success.')
+                    logger.info('Auth Success.')
                     return self.get_author_follow(mid, page_index, max_retry, retry=retry + 1)
                 else:
                     raise RuntimeError('Auth Failed.')
@@ -217,12 +219,12 @@ class BangumiCrawler:
         return int(response['data']['pages']), response['data']['result']
 
     def process_authors(self, max_retry):
-        print('[INFO] Getting Authors...')
+        logger.info('Getting Authors...')
         tasks = [i['mid'] for i in self.db.get_author_tasks()]
 
         retry = 0
         while len(tasks) > 0 and retry < max_retry:
-            print('[INFO] Start Trying %s Times, %s Authors Left.' % (retry, len(tasks)))
+            logger.info('Start Trying %s Times, %s Authors Left.' % (retry, len(tasks)))
             for mid in tasks:
                 try:
                     season_ids = []
@@ -233,18 +235,18 @@ class BangumiCrawler:
                         season_ids.extend([int(i['season_id']) for i in result])
                     self.db.push_to_follow(mid, season_ids)
                     tasks.remove(mid)
-                    print("[INFO] Get %s's Follow Finished." % mid)
+                    logger.info("Get %s's Follow Finished." % mid)
                 except (RequestException, RuntimeError) as e:
-                    print("[WARNING] Get %s's Follow Failed, Waiting for Retry...(%s)" % (mid, e))
+                    logger.warning("Get %s's Follow Failed, Waiting for Retry...(%s)" % (mid, e))
                     continue
             retry += 1
         return len(tasks), retry
 
     def crawl(self, full_crawl=False, max_retry=None):
-        print('[INFO] New Crawl Beginning...')
+        logger.info('New Crawl Beginning...')
 
         # Get all animes
-        print('[INFO] Getting Animes List...')
+        logger.info('Getting Animes List...')
         url = "https://bangumi.bilibili.com/web_api/season/index_global?version=%s&area=%s&is_finish=%s&start_year=%s" \
               "&quarter=%s&tag_id=%s" % (
                   self.conf.CRAWL_VERSION,
@@ -263,13 +265,13 @@ class BangumiCrawler:
 
         todo = []
         for i in range(1, pages + 1):
-            print('[INFO] Preparing %s/%s...' % (i, pages))
+            logger.info('Preparing %s/%s...' % (i, pages))
             while True:
                 try:
                     raw_results = requests.get(url % i, headers=self.HEADERS).json().get('result', {}).get('list', [])
                     break
                 except RequestException:
-                    print('[WARNING] Get %s Todo Failed, Waiting for Retry...' % i)
+                    logger.warning('Get %s Todo Failed, Waiting for Retry...' % i)
             for raw_result in raw_results:
                 todo.append(raw_result)
 
@@ -282,9 +284,9 @@ class BangumiCrawler:
         else:
             authors_left = authors_retry = 0
 
-        print('[INFO] Archiving...')
+        logger.info('Archiving...')
         self.db.archive()
-        print('[SUCCESS] Archive Finished.')
+        logger.info('Archive Finished.')
 
-        print('[SUCCESS] Crawling Tasks Finished, (%s, %s, %s) Left, with (%s, %s, %s) Times Retry.'
-              % (todo_left, reviews_left, authors_left, detail_retry, reviews_retry, authors_retry))
+        logger.info('Crawling Tasks Finished, (%s, %s, %s) Left, with (%s, %s, %s) Times Retry.'
+                    % (todo_left, reviews_left, authors_left, detail_retry, reviews_retry, authors_retry))

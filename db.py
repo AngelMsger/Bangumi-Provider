@@ -93,10 +93,11 @@ class MongoDB(DB):
                                       {'$set': {'last_%s_reviews_cursor' % reviews_type: cursor}})
 
     def get_all_entrances(self):
-        return [(anime['media_id'],
-                 anime.get('last_long_reviews_cursor', None),
-                 anime.get('last_short_reviews_cursor', None)
-                 ) for anime in self.db.animes.find()]
+        return [{
+            'media_id': anime['media_id'],
+            'last_long_reviews_cursor': anime.get('last_long_reviews_cursor', None),
+            'last_short_reviews_cursor': anime.get('last_short_reviews_cursor', None)
+        } for anime in self.db.animes.find()]
 
     def get_author_tasks(self):
         threshold = datetime.now() - timedelta(hours=self.conf.CRAWL_AUTHOR_TTL)
