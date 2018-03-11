@@ -5,7 +5,7 @@ from json import JSONDecodeError
 import requests
 from requests.exceptions import RequestException
 
-from utils import logger
+from utils import logger, log_duration
 
 
 class BangumiCrawler:
@@ -242,7 +242,8 @@ class BangumiCrawler:
             retry += 1
         return len(tasks), retry
 
-    def crawl(self, full_crawl=False, max_retry=None):
+    @log_duration
+    def crawl(self, full_crawl=False, max_retry=None) -> None:
         logger.info('New Crawl Beginning...')
 
         # Get all animes

@@ -37,16 +37,16 @@ class DB:
     def get_authors_count(self):
         pass
 
-    def get_reviews_count(self, media_id, is_long=True):
+    def get_reviews_count(self, media_id):
         pass
 
-    def push_to_follow(self, mid, season_ids):
+    def push_to_follow(self, mid, season_ids) -> None:
         pass
 
-    def update_anime_top_matches(self, media_id, top_matches):
+    def update_anime_top_matches(self, media_id, top_matches) -> None:
         pass
 
-    def update_author_top_matches(self, mid, top_matches):
+    def update_author_recommendation(self, mid, top_matches, recommendation) -> None:
         pass
 
 
@@ -67,8 +67,7 @@ class MongoDB(DB):
                     'season_id': anime['season_id'],
                     'favorites': anime['favorites'],
                     'danmaku_count': anime['danmaku_count'],
-                    'long_reviews_count': self.get_reviews_count(anime['media_id']),
-                    'short_reviews_count': self.get_reviews_count(anime['media_id'], is_long=False)
+                    'reviews_count': self.get_reviews_count(anime['media_id']),
                 }
                 if 'rating' in anime:
                     archive.update({'rating': anime['rating']})
@@ -128,22 +127,28 @@ class MongoDB(DB):
     def get_authors_count(self):
         return self.db.authors.count()
 
-    def get_reviews_count(self, media_id, is_long=True):
-        result = 0
-        authors = self.db.authors.find()
-        for author in authors:
-            result += len([review for review in author['reviews']
-                           if review['media_id'] == media_id and review['is_long'] == is_long])
-        return result
+    def get_reviews_count(self, media_id):
+        pipeline = [{
+            '$project': {'matched': {'$size': {'$filter': {
+                'input': '$reviews', 'cond': {'$eq': ['$$this.media_id', media_id]}
+            }}}}}, {'$group': {'_id': None, 'matched_size': {'$sum': '$matched'}}}]
+        matched_sizes = self.db.authors.aggregate(pipeline)
+        reviews_count = 0
+        for i in matched_sizes:
+            reviews_count += i['matched_size']
+        return reviews_count
 
-    def push_to_follow(self, mid, season_ids):
+    def push_to_follow(self, mid, season_ids) -> None:
         self.db.authors.update_one({'mid': mid}, {'$set': {'follow': season_ids, 'last_update': datetime.now()}})
 
-    def update_anime_top_matches(self, media_id, top_matches):
+    def update_anime_top_matches(self, media_id, top_matches) -> None:
         self.db.animes.update_one({'media_id': media_id}, {'$set': {'top_matches': top_matches}})
 
-    def update_author_top_matches(self, mid, top_matches):
-        self.db.authors.update_one({'mid': mid}, {'$set': {'top_matches': top_matches}})
+    def update_author_recommendation(self, mid, top_matches, recommendation) -> None:
+        self.db.authors.update_one({'mid': mid}, {'$set': {
+            'top_matches': top_matches,
+            'recommendation': recommendation
+        }})
 
     def __init__(self, conf) -> None:
         self.conf = conf

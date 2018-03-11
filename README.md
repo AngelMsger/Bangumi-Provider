@@ -1,10 +1,10 @@
-# Bangumi-Crawler
+# Bangumi-Provider
 [![Build Status](https://travis-ci.org/AngelMsger/Bangumi-Provider.svg?branch=master)](https://travis-ci.org/AngelMsger/Bangumi-Provider)
 
 ![Bangumi-Crawler](https://s1.hdslb.com/bfs/static/jinkela/home/images/bgm-nodata.png)
 
 ## Overview
-Bangumi-Provider is a animes information and their comments crawler for [Bilibili](https://www.bilibili.com). It run with single thread and no framework was used.
+Bangumi-Provider is a content provider for [Bangumi-Player](https://github.com/AngelMsger/Bangumi-Player). It crawl, analyze the data from [Bilibili](https://www.bilibili.com), and persist the result to database. It run with single thread and no framework was used.
 
 ## Features
 * Incremental
@@ -16,7 +16,7 @@ Bangumi-Provider is a animes information and their comments crawler for [Bilibil
 `docker-compose up`
 
 ### With Docker
-`docker run -itd --name=crawler --net=host --restart=always -e DB_PASSWORD=$DB_PASSWORD angelmsger/bangumi-provider`
+`docker run -itd --name=provider --net=host --restart=always -e DB_PASSWORD=$DB_PASSWORD angelmsger/bangumi-provider`
 
 ### Manually
 

@@ -18,19 +18,20 @@ def log_duration(func):
 
 
 def get_logger(name='Bangumi-Provider', filename='provider.log', enable_debug=True):
-    logger = logging.getLogger(name)
+    custom_logger = logging.getLogger(name)
     formatter = logging.Formatter('%(asctime)s %(levelname)-8s: %(message)s')
 
     file_handler = logging.FileHandler(filename)
     file_handler.setFormatter(formatter)
+    file_handler.setLevel(logging.DEBUG)
     console_handler = logging.StreamHandler(sys.stdout)
     console_handler.setFormatter(formatter)
+    console_handler.setLevel(logging.DEBUG if enable_debug else logging.INFO)
 
-    logger.addHandler(file_handler)
-    logger.addHandler(console_handler)
+    custom_logger.addHandler(file_handler)
+    custom_logger.addHandler(console_handler)
 
-    logger.setLevel(logging.DEBUG if enable_debug else logging.INFO)
-    return logger
+    return custom_logger
 
 
 logger = get_logger(enable_debug=(conf == Dev))
