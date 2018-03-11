@@ -12,38 +12,31 @@ class BangumiAnalyzer:
 
     @log_duration
     def get_animes_authors_refs_matrix(self):
-        authors_count = self.db.get_authors_count()
-        media_ids, scores = [], []
-        media_id_indexes, cur = {}, 0
-        for media_id, score in self.db.get_all_anime_score_pairs():
-            media_ids.append(media_id)
-            scores.append(score)
-            media_id_indexes[str(media_id)] = cur
+        media_ids, media_id_indexes, cur = [], {}, 0
+        for entrance in self.db.get_all_entrances():
+            media_ids.append(entrance['media_id'])
+            media_id_indexes[str(entrance['media_id'])] = cur
             cur += 1
 
-        mat = np.repeat(scores, authors_count).reshape(len(media_ids), authors_count).T
+        authors_count = self.db.get_authors_count()
+        mat = np.zeros((authors_count, len(media_ids)))
 
         mids = []
         cur = 0
-        for mid, reviews, follow_media_ids in self.db.get_all_author_ratings_follow_pair():
+        for mid, reviews, _ in self.db.get_all_author_ratings_follow_pair():
             mids.append(mid)
-
             for review in reviews:
                 index = str(review['media_id'])
-                if index in media_id_indexes:
-                    mat[cur, media_id_indexes[index]] = review['score']
-            for media_id in follow_media_ids:
-                index = str(media_id)
-                if index in media_id_indexes:
-                    mat[cur, media_id_indexes[index]] *= 1.05
-
+                mat[cur, media_id_indexes[index]] = review['score']
             cur += 1
 
         return mat, media_ids, mids
 
     @staticmethod
     def calc_similarity(lhs, rhs):
-        return pearsonr(lhs, rhs)[0]
+        index = np.logical_and(lhs > 0, rhs > 0)
+        lhs_shared, rhs_shared = lhs[index], rhs[index]
+        return pearsonr(lhs, rhs)[0] if len(lhs_shared) > 1 else 0
 
     @staticmethod
     @log_duration
@@ -54,7 +47,7 @@ class BangumiAnalyzer:
             for j in range(i + 1, cols_count):
                 mat[i, j] = BangumiAnalyzer.calc_similarity(refs_matrix[:, i], refs_matrix[:, j])
         mat += mat.T
-        np.fill_diagonal(mat, -2)
+        np.fill_diagonal(mat, -1)
         return mat
 
     @log_duration
@@ -92,10 +85,16 @@ class BangumiAnalyzer:
                 total_scores_with_weight += (similarity * ref_mat[index]).sum()
                 total_weight += similarity
             top_matches.reverse()
-            recommend_indexes = (total_scores_with_weight / total_weight).argsort()[
-                                0 - self.conf.ANALYZE_ANIME_TOP_MATCHES_SIZE:]
+            recommend_indexes = (total_scores_with_weight / total_weight).argsort()
             recommend_indexes_sorted = np.flip(recommend_indexes, axis=0)
-            recommendation = [media_ids[index] for index in recommend_indexes_sorted]
+            author_watched_media_ids = self.db.get_author_watched_media_ids(mids[cur])
+
+            recommendation = []
+            for index in recommend_indexes_sorted:
+                if len(recommendation) == self.conf.ANALYZE_AUTHOR_RECOMMENDATION_SIZE:
+                    break
+                if media_ids[index] not in author_watched_media_ids:
+                    recommendation.append(media_ids[index])
 
             self.db.update_author_recommendation(mids[cur], top_matches, recommendation)
         logger.info('Authors Top-Matches Persisted.')

@@ -25,14 +25,17 @@ class DB:
     def get_author_tasks(self):
         pass
 
-    def get_all_anime_score_pairs(self, has_rating=True):
+    # def get_all_anime_score_pairs(self, has_rating=True):
+    #     pass
+
+    def get_author_watched_media_ids(self, mid):
         pass
 
     def get_all_author_ratings_follow_pair(self):
         pass
 
-    def get_animes_count(self, has_rating=True):
-        pass
+    # def get_animes_count(self, has_rating=True):
+    #     pass
 
     def get_authors_count(self):
         pass
@@ -104,25 +107,31 @@ class MongoDB(DB):
             'last_update': {'$not': {'$gt': threshold}}
         }, {'mid': 1}).limit(self.conf.CRAWL_AUTHOR_MAX_PER_TIME)
 
-    def get_all_anime_score_pairs(self, has_rating=True):
-        if has_rating:
-            return ((anime['media_id'], anime['rating']['score'])
-                    for anime in self.db.animes.find({'rating': {'$exists': True}}))
-        else:
-            return ((anime['media_id'], anime['rating']['score'] if 'rating' in anime else None)
-                    for anime in self.db.animes.find())
+    # def get_all_anime_score_pairs(self, has_rating=True):
+    #     if has_rating:
+    #         return ((anime['media_id'], anime['rating']['score'])
+    #                 for anime in self.db.animes.find({'rating': {'$exists': True}}))
+    #     else:
+    #         return ((anime['media_id'], anime['rating']['score'] if 'rating' in anime else None)
+    #                 for anime in self.db.animes.find())
 
     def get_media_id(self, season_id):
         return self.db.animes.find_one({'season_id': season_id}, {'media_id': 1})['media_id']
+
+    def get_author_watched_media_ids(self, mid):
+        author = self.db.authors.find_one({'mid': mid})
+        commented = set([review['media_id'] for review in author['reviews']])
+        followed = set([self.get_media_id(season_id) for season_id in author.get('follow', [])])
+        return commented | followed
 
     def get_all_author_ratings_follow_pair(self):
         return ((author['mid'], [review for review in author['reviews']],
                  [self.get_media_id(season_id) for season_id in author.get('follow', [])])
                 for author in self.db.authors.find())
 
-    def get_animes_count(self, has_rating=True):
-        query = {'rating': {'$exists': True}} if has_rating else {}
-        return self.db.animes.count(query)
+    # def get_animes_count(self, has_rating=True):
+    #     query = {'rating': {'$exists': True}} if has_rating else {}
+    #     return self.db.animes.count(query)
 
     def get_authors_count(self):
         return self.db.authors.count()
