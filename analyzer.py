@@ -62,7 +62,7 @@ class BangumiAnalyzer:
         logger.info('Calculating Animes Similarity Matrix...')
         animes_sim_mat = self.get_similarity_matrix(ref_mat)
         logger.info('Animes Similarity Matrix %s Calculated.' % str(animes_sim_mat.shape))
-        animes_sim_indexes_mat = animes_sim_mat.argsort()[:, 0 - self.conf.ANALYZE_ANIMES_SIMILARITY_COUNT:]
+        animes_sim_indexes_mat = animes_sim_mat.argsort()[:, 0 - self.conf.ANALYZE_ANIME_TOP_MATCHES_SIZE:]
         logger.info('Animes Sim-Indexes %s Get Finished.' % str(animes_sim_indexes_mat.shape))
 
         cur = 0
@@ -79,7 +79,7 @@ class BangumiAnalyzer:
         logger.info('Calculating Authors Similarity Matrix...')
         authors_sim_mat = self.get_similarity_matrix(ref_mat.T)
         logger.info('Authors Similarity Matrix %s Calculated.' % str(authors_sim_mat.shape))
-        authors_sim_indexes_mat = authors_sim_mat.argsort()[:, 0 - self.conf.ANALYZE_AUTHORS_SIMILARITY_COUNT:]
+        authors_sim_indexes_mat = authors_sim_mat.argsort()[:, 0 - self.conf.ANALYZE_AUTHOR_TOP_MATCHES_SIZE:]
         logger.info('Authors Sim-Indexes %s Get Finished.' % str(authors_sim_indexes_mat.shape))
 
         cur = 0
@@ -93,7 +93,7 @@ class BangumiAnalyzer:
                 total_weight += similarity
             top_matches.reverse()
             recommend_indexes = (total_scores_with_weight / total_weight).argsort()[
-                                0 - self.conf.ANALYZE_ANIMES_SIMILARITY_COUNT:]
+                                0 - self.conf.ANALYZE_ANIME_TOP_MATCHES_SIZE:]
             recommend_indexes_sorted = np.flip(recommend_indexes, axis=0)
             recommendation = [media_ids[index] for index in recommend_indexes_sorted]
 
