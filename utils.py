@@ -2,14 +2,16 @@ import functools
 import logging
 import sys
 from datetime import datetime
+from logging.handlers import RotatingFileHandler
 
 from conf import conf, Dev
 
 
-def get_logger(name='Bangumi-Provider', filename='provider.log', enable_debug=True):
+def get_logger(name='Bangumi-Provider', enable_debug=True):
     custom_logger = logging.getLogger(name)
     formatter = logging.Formatter('%(asctime)s %(levelname)-8s: %(message)s')
-    file_handler = logging.FileHandler(filename)
+    file_handler = RotatingFileHandler(conf.LOGGING_FILENAME,
+                                       maxBytes=conf.LOGGING_MAX_BYTES, backupCount=conf.LOGGING_BACKUP_COUNT)
     file_handler.setFormatter(formatter)
     console_handler = logging.StreamHandler(sys.stdout)
     console_handler.setFormatter(formatter)

@@ -1,12 +1,10 @@
 import gc
 
 import numpy as np
-
+from redis import Redis
 from scipy.stats import pearsonr
 
 from utils import log_duration, logger
-
-from redis import Redis
 
 
 class BangumiAnalyzer:
@@ -55,6 +53,7 @@ class BangumiAnalyzer:
         _, cols_count = refs_matrix.shape
         mat = np.zeros((cols_count, cols_count))
         for i in range(0, cols_count):
+            logger.info('Calculating Similarities %s/%s...' % (i, cols_count))
             for j in range(i + 1, cols_count):
                 mat[i, j] = BangumiAnalyzer.calc_similarity(refs_matrix[:, i], refs_matrix[:, j])
         mat += mat.T

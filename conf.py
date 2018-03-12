@@ -22,6 +22,11 @@ class Conf:
     REDIS_PASSWORD = os.environ.get('REDIS_PASSWORD', None)
     REDIS_MAX_MEMORY = '%smb' % int(os.environ.get('REDIS_MAX_MEMORY', 512))
 
+    # Logging
+    LOGGING_FILENAME = os.environ.get('LOGGING_FILENAME', 'stdout.log')
+    LOGGING_MAX_BYTES = int(os.environ.get('LOGGING_MAX_BYTES', 65536))
+    LOGGING_BACKUP_COUNT = int(os.environ.get('LOGGING_BACKUP_COUNT', 4))
+
     # Crawler
     CRAWL_MAX_RETRY = int(os.environ.get('CRAWL_MAX_RETRY', 32))
 
@@ -61,4 +66,4 @@ class Prod(Conf):
     pass
 
 
-conf = Dev
+conf = Prod

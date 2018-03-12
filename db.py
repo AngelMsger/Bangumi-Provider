@@ -4,6 +4,8 @@ from datetime import timedelta
 
 from pymongo import MongoClient, IndexModel, ASCENDING, DESCENDING
 
+from utils import logger, log_duration
+
 
 # Storage Backend Interface
 class DB:
@@ -54,12 +56,14 @@ class MongoDB(DB):
         self.db.authors.remove({})
         self.db.archives.remove({})
 
+    @log_duration
     def archive(self) -> None:
         today = datetime.combine(date.today(), datetime.min.time())
         if self.db.archives.find_one({'date': today}) is None:
             outdated = self.db.animes.find()
             archives = []
             for anime in outdated:
+                logger.info('Archiving for Season:%s...' % anime['season_id'])
                 archive = {
                     'season_id': anime['season_id'],
                     'favorites': anime['favorites'],
