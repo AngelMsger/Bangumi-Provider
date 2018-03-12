@@ -107,23 +107,27 @@ class BangumiCrawler:
             except (RequestException, JSONDecodeError, KeyError):
                 return False
 
-    def get_bulk_reviews(self, media_id, cursor, is_long=True):
+    def crawl_and_persist_reviews(self, media_id, cursor, is_long=True):
         reviews_type = 'long' if is_long else 'short'
         logger.info("Getting %s's %s Reviews..." % (media_id, reviews_type))
         url = 'https://bangumi.bilibili.com/review/web_api/%s/list?media_id=%s' % (reviews_type, media_id)
         response = requests.get('%s&cursor=%s' % (url, cursor) if cursor is not None else url, headers=self.HEADERS)
         result = response.json()['result']
         total, reviews = result['total'], result['list']
-        results = []
         while len(reviews) > 0:
-            results.extend([self.make_review(review, media_id)
-                            if is_long else self.make_review(review, media_id, is_long=False) for review in reviews])
             cursor = reviews[-1]['cursor']
+            self.db.persist_reviews(media_id, [self.make_review(review, media_id)
+                                               if is_long else self.make_review(review, media_id, is_long=False)
+                                               for review in reviews], cursor, is_long=is_long)
             logger.debug("Processing %s's Reviews at Cursor: %s..." % (media_id, cursor))
-            reviews = requests.get('%s&cursor=%s' % (url, cursor), headers=self.HEADERS).json()['result']['list']
+            try:
+                reviews = requests.get('%s&cursor=%s' % (url, cursor), headers=self.HEADERS).json()['result']['list']
+            except (KeyError, RequestException):
+                logger.warning("Get %s's %s Reviews Broken at Cursor %s." % (media_id, reviews_type.title(), cursor))
+                return False, cursor
 
         logger.info("Getting %s's %s Reviews Finished." % (media_id, reviews_type.title()))
-        return results, cursor
+        return True, cursor
 
     def process_animes(self, todo, max_retry):
         """
@@ -173,28 +177,23 @@ class BangumiCrawler:
         while len(entrances) > 0 and retry < max_retry:
             logger.info('Start Trying %s Times, %s Animes Left.' % (retry, len(entrances)))
             for entrance in entrances:
-                is_entrance_finished = True
+                media_id = entrance['media_id']
+                try:
+                    is_long_reviews_finished, cursor = self.crawl_and_persist_reviews(
+                        media_id, entrance['last_long_reviews_cursor'])
+                    entrance['last_long_reviews_cursor'] = cursor
 
-                try:
-                    reviews, last_long_reviews_cursor = self.get_bulk_reviews(entrance['media_id'],
-                                                                              entrance['last_long_reviews_cursor'])
-                    self.db.persist_reviews(entrance['media_id'], reviews, last_long_reviews_cursor)
-                    entrance['last_long_reviews_cursor'] = last_long_reviews_cursor
+                    is_short_reviews_finished, cursor = self.crawl_and_persist_reviews(
+                        media_id, entrance['last_short_reviews_cursor'], is_long=False)
+                    entrance['last_short_reviews_cursor'] = cursor
+
+                    if is_long_reviews_finished and is_short_reviews_finished:
+                        logger.info("Get %s's Reviews Finished." % media_id)
+                        entrances.remove(entrance)
+                    else:
+                        logger.warning("Get %s's Reviews Partly Finished, Waiting for Retry..." % media_id)
                 except (KeyError, RequestException):
-                    is_entrance_finished = False
-                    logger.warning("Get %s's Long Reviews Failed, Waiting for Retry..." % entrance['media_id'])
-                try:
-                    reviews, last_short_reviews_cursor = \
-                        self.get_bulk_reviews(entrance['media_id'], entrance['last_short_reviews_cursor'],
-                                              is_long=False)
-                    self.db.persist_reviews(entrance['media_id'], reviews, last_short_reviews_cursor, is_long=False)
-                    entrance['last_short_reviews_cursor'] = last_short_reviews_cursor
-                except (KeyError, RequestException):
-                    is_entrance_finished = False
-                    logger.warning("Get %s's Reviews Failed, Waiting for Retry..." % entrance['media_id'])
-                if is_entrance_finished:
-                    entrances.remove(entrance)
-                    logger.info("Get %s's Reviews Finished." % entrance['media_id'])
+                    logger.warning("Start Crawl %ds's Reviews Failed, Waiting for Retry..." % entrance['media_id'])
             retry += 1
         return len(entrances), retry
 
