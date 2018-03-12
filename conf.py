@@ -3,7 +3,7 @@ import os
 
 class Conf:
     # Schedule
-    CRON_AT = os.environ.get('CRON_AT', '3:00')
+    SCHEDULE_ENABLE = False if os.environ.get('SCHEDULE_ENABLE', 'False').lower() == 'false' else True
 
     # Persist Database Backend
     DB_HOST = os.environ.get('DB_HOST', 'localhost')
@@ -54,4 +54,4 @@ class Prod(Conf):
     pass
 
 
-conf = Prod
+conf = Dev
