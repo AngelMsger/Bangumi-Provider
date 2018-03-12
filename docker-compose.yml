@@ -4,6 +4,10 @@ services:
     build: .
     image: bangumi-provider
     environment:
+      - DB_HOST=mongo
       - DB_ENABLE_AUTH=False
+      - REDIS_HOST=redis
   mongo:
     image: 'mongo'
+  redis:
+    image: 'redis'

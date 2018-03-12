@@ -15,6 +15,13 @@ class Conf:
     DB_USERNAME = os.environ.get('DB_USERNAME', 'bangumi')
     DB_PASSWORD = os.environ.get('DB_PASSWORD', 'password')
 
+    # Cache Backend
+    REDIS_HOST = os.environ.get('REDIS_HOST', 'localhost')
+    REDIS_PORT = int(os.environ.get('REDIS_PORT', 6379))
+    REDIS_DATABASE = int(os.environ.get('REDIS_DATABASE', 0))
+    REDIS_PASSWORD = os.environ.get('REDIS_PASSWORD', None)
+    REDIS_MAX_MEMORY = '%smb' % int(os.environ.get('REDIS_MAX_MEMORY', 512))
+
     # Crawler
     CRAWL_MAX_RETRY = int(os.environ.get('CRAWL_MAX_RETRY', 32))
 
@@ -54,4 +61,4 @@ class Prod(Conf):
     pass
 
 
-conf = Prod
+conf = Dev

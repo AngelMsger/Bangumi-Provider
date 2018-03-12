@@ -28,7 +28,7 @@ class DB:
     def get_author_watched_media_ids(self, mid):
         pass
 
-    def get_all_author_ratings_follow_pair(self):
+    def get_valid_author_ratings_follow_pairs(self):
         pass
 
     def get_authors_count(self):
@@ -110,13 +110,14 @@ class MongoDB(DB):
         followed = set([self.get_media_id(season_id) for season_id in author.get('follow', [])])
         return commented | followed
 
-    def get_all_author_ratings_follow_pair(self):
+    def get_valid_author_ratings_follow_pairs(self):
         return ((author['mid'], [review for review in author['reviews']],
                  [self.get_media_id(season_id) for season_id in author.get('follow', [])])
-                for author in self.db.authors.find())
+                for author in self.db.authors.find({'$where': 'this.reviews.length > 1'}))
 
-    def get_authors_count(self):
-        return self.db.authors.count()
+    def get_authors_count(self, is_valid=True):
+        query = {'$where': 'this.reviews.length > 1'} if is_valid else {}
+        return self.db.authors.count(query)
 
     def get_reviews_count(self, media_id):
         pipeline = [{

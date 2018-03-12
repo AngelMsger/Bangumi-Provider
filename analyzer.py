@@ -1,14 +1,25 @@
+import gc
+
 import numpy as np
 
 from scipy.stats import pearsonr
 
 from utils import log_duration, logger
 
+from redis import Redis
+
 
 class BangumiAnalyzer:
     def __init__(self, db, conf) -> None:
         self.conf = conf
         self.db = db
+        self.redis = Redis(self.conf.REDIS_HOST, self.conf.REDIS_PORT, db=self.conf.REDIS_DATABASE,
+                           password=self.conf.REDIS_PASSWORD)
+        self.redis.config_set('maxmemory', self.conf.REDIS_MAX_MEMORY)
+        self.redis.config_set('maxmemory-policy', 'allkeys-lru')
+
+    def __del__(self) -> None:
+        self.redis.flushdb()
 
     @log_duration
     def get_animes_authors_refs_matrix(self):
@@ -19,11 +30,11 @@ class BangumiAnalyzer:
             cur += 1
 
         authors_count = self.db.get_authors_count()
-        mat = np.zeros((authors_count, len(media_ids)))
+        mat = np.zeros((authors_count, len(media_ids)), dtype='int8')
 
         mids = []
         cur = 0
-        for mid, reviews, _ in self.db.get_all_author_ratings_follow_pair():
+        for mid, reviews, _ in self.db.get_valid_author_ratings_follow_pairs():
             mids.append(mid)
             for review in reviews:
                 index = str(review['media_id'])
@@ -55,7 +66,8 @@ class BangumiAnalyzer:
         logger.info('Calculating Animes Similarity Matrix...')
         animes_sim_mat = self.get_similarity_matrix(ref_mat)
         logger.info('Animes Similarity Matrix %s Calculated.' % str(animes_sim_mat.shape))
-        animes_sim_indexes_mat = animes_sim_mat.argsort()[:, 0 - self.conf.ANALYZE_ANIME_TOP_MATCHES_SIZE:]
+        animes_sim_indexes_mat = np.flip(animes_sim_mat.argsort()[:,
+                                         0 - self.conf.ANALYZE_ANIME_TOP_MATCHES_SIZE:], axis=1)
         logger.info('Animes Sim-Indexes %s Get Finished.' % str(animes_sim_indexes_mat.shape))
 
         cur = 0
@@ -67,36 +79,41 @@ class BangumiAnalyzer:
             cur += 1
         logger.info('Animes Top-Matches Persisted.')
 
+    def calc_authors_similarity_with_cache(self, ref_mat, index_0, index_1):
+        pass
+
     @log_duration
     def process_authors_recommendation(self, ref_mat, media_ids, mids) -> None:
-        logger.info('Calculating Authors Similarity Matrix...')
-        authors_sim_mat = self.get_similarity_matrix(ref_mat.T)
-        logger.info('Authors Similarity Matrix %s Calculated.' % str(authors_sim_mat.shape))
-        authors_sim_indexes_mat = authors_sim_mat.argsort()[:, 0 - self.conf.ANALYZE_AUTHOR_TOP_MATCHES_SIZE:]
-        logger.info('Authors Sim-Indexes %s Get Finished.' % str(authors_sim_indexes_mat.shape))
+        for i in range(0, mids):
+            logger.info("Calculating %s's Top-Matches and Recommendation." % mids[i])
+            similarities = np.empty((len(mids),))
+            similarities[i] = -1
+            for j in range(0, mids):
+                if i != j:
+                    index_pair = '%s:%s' % (min(i, j), max(i, j))
+                    similarity = self.redis.get(index_pair)
+                    if similarity is None:
+                        similarity = self.calc_similarity(ref_mat[i], ref_mat[j])
+                        self.redis.set(index_pair, similarity)
+                    similarities[j] = similarity
+            sorted_indexes = np.flip(similarities.argsort(), axis=0)[0 - self.conf.ANALYZE_AUTHOR_TOP_MATCHES_SIZE:]
 
-        cur = 0
-        for author_sim_indexes in authors_sim_indexes_mat:
-            top_matches = []
+            top_matches, recommendation = [], []
             total_scores_with_weight, total_weight = 0, 0
-            for index in author_sim_indexes:
-                similarity = authors_sim_mat[cur, index]
+            for index in sorted_indexes:
+                similarity = similarities[index]
                 top_matches.append({'mid': mids[index], 'similarity': similarity})
-                total_scores_with_weight += (similarity * ref_mat[index]).sum()
+                total_scores_with_weight += similarity * ref_mat[index]
                 total_weight += similarity
-            top_matches.reverse()
-            recommend_indexes = (total_scores_with_weight / total_weight).argsort()
-            recommend_indexes_sorted = np.flip(recommend_indexes, axis=0)
-            author_watched_media_ids = self.db.get_author_watched_media_ids(mids[cur])
-
-            recommendation = []
+            recommend_indexes_sorted = np.flip((total_scores_with_weight / total_weight).argsort(), axis=0)
+            author_watched_media_ids = self.db.get_author_watched_media_ids(mids[i])
             for index in recommend_indexes_sorted:
                 if len(recommendation) == self.conf.ANALYZE_AUTHOR_RECOMMENDATION_SIZE:
                     break
                 if media_ids[index] not in author_watched_media_ids:
                     recommendation.append(media_ids[index])
 
-            self.db.update_author_recommendation(mids[cur], top_matches, recommendation)
+            self.db.update_author_recommendation(mids[i], top_matches, recommendation)
         logger.info('Authors Top-Matches Persisted.')
 
     def analyze(self) -> None:
@@ -111,3 +128,5 @@ class BangumiAnalyzer:
         self.process_authors_recommendation(ref_mat, media_ids, mids)
 
         logger.info('Analyzing Tasks Finished.')
+        self.redis.flushdb()
+        gc.collect()

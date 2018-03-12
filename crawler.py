@@ -1,3 +1,4 @@
+import gc
 import json
 from datetime import datetime, timedelta
 from json import JSONDecodeError
@@ -290,3 +291,4 @@ class BangumiCrawler:
 
         logger.info('Crawling Tasks Finished, (%s, %s, %s) Left, with (%s, %s, %s) Times Retry.'
                     % (todo_left, reviews_left, authors_left, detail_retry, reviews_retry, authors_retry))
+        gc.collect()
