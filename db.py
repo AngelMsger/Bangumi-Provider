@@ -3,6 +3,7 @@ from datetime import datetime
 from datetime import timedelta
 
 from pymongo import MongoClient, IndexModel, ASCENDING, DESCENDING
+import pymysql.cursors
 
 from utils import logger, log_duration
 
@@ -120,10 +121,14 @@ class MongoDB(DB):
     def get_valid_author_ratings_follow_pairs(self):
         return ((author['mid'], [review for review in author['reviews']],
                  [self.get_media_id(season_id) for season_id in author.get('follow', [])])
-                for author in self.db.authors.find({'$where': 'this.reviews.length > 1'}))
+                for author in self.db.authors.find({
+                    '$where': 'this.reviews.length > %s' % self.conf.ANALYZE_AUTHOR_REVIEWS_VALID_THRESHOLD
+                }))
 
     def get_authors_count(self, is_valid=True):
-        query = {'$where': 'this.reviews.length > 1'} if is_valid else {}
+        query = {
+            '$where': 'this.reviews.length > %s' % self.conf.ANALYZE_AUTHOR_REVIEWS_VALID_THRESHOLD
+        } if is_valid else {}
         return self.db.authors.count(query)
 
     def get_reviews_count(self, media_id):
@@ -177,3 +182,7 @@ class MongoDB(DB):
 
     def __del__(self) -> None:
         self.client.close()
+
+
+class MySQL(DB):
+    pass

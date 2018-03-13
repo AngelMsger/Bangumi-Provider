@@ -20,7 +20,7 @@ class Conf:
     REDIS_PORT = int(os.environ.get('REDIS_PORT', 6379))
     REDIS_DATABASE = int(os.environ.get('REDIS_DATABASE', 0))
     REDIS_PASSWORD = os.environ.get('REDIS_PASSWORD', None)
-    REDIS_MAX_MEMORY = '%smb' % int(os.environ.get('REDIS_MAX_MEMORY', 512))
+    REDIS_MAX_MEMORY = '%smb' % int(os.environ.get('REDIS_MAX_MEMORY', 1024))
 
     REDIS_SIMILARITY_TTL = int(os.environ.get('REDIS_KV_TTL', 86400))
 
@@ -58,6 +58,9 @@ class Conf:
     ANALYZE_ANIME_TOP_MATCHES_SIZE = int(os.environ.get('ANALYZE_ANIME_TOP_MATCHES_SIZE', 8))
     ANALYZE_AUTHOR_TOP_MATCHES_SIZE = int(os.environ.get('ANALYZE_AUTHORS_SIMILARITY_COUNT', 64))
     ANALYZE_AUTHOR_RECOMMENDATION_SIZE = int(os.environ.get('ANALYZE_AUTHOR_RECOMMENDATION_SIZE', 16))
+
+    # Author Whose Reviews More than Threshold Will be Calculate.
+    ANALYZE_AUTHOR_REVIEWS_VALID_THRESHOLD = int(os.environ.get('ANALYZE_ANIME_TOP_MATCHES_SIZE', 3))
 
     ANALYZE_AUTHOR_TTL = int(os.environ.get('ANALYZE_AUTHOR_TTL', 720))
 
