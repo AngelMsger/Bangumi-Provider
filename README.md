@@ -7,7 +7,8 @@
 Bangumi-Provider is a content provider for [Bangumi-Player](https://github.com/AngelMsger/Bangumi-Player). It crawl, analyze the data from [Bilibili](https://www.bilibili.com), and persist the result to database. It run with single thread and no framework was used.
 
 ## Features
-* Incremental
+* Incremental Crawl & Analyze
+* Multi Storage Backend Support
 * Containerized
 
 ## Usage

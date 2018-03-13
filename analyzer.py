@@ -3,6 +3,8 @@ import gc
 import numpy as np
 from redis import Redis
 from scipy.stats import pearsonr
+import h5py
+from datetime import datetime, timedelta
 
 from utils import log_duration, logger
 
@@ -16,29 +18,44 @@ class BangumiAnalyzer:
         self.redis.config_set('maxmemory', self.conf.REDIS_MAX_MEMORY)
         self.redis.config_set('maxmemory-policy', 'allkeys-lru')
 
-    def __del__(self) -> None:
-        self.redis.flushdb()
-
     @log_duration
     def get_animes_authors_refs_matrix(self):
-        media_ids, media_id_indexes, cur = [], {}, 0
-        for entrance in self.db.get_all_entrances():
-            media_ids.append(entrance['media_id'])
-            media_id_indexes[str(entrance['media_id'])] = cur
-            cur += 1
+        mat, media_ids, mids = None, None, None
+        try:
+            with h5py.File(self.conf.HDF5_FILENAME, "r") as f:
+                last_update = datetime.strptime(f.attrs['last_update'], '%Y-%m-%d %H:%M:%S.%f')
+                if last_update > datetime.now() - timedelta(hours=self.conf.HDF5_DATA_SET_TTL):
+                    mat = f['animes_authors_refs_matrix']
+                    media_ids = f['media_ids']
+                    mids = f['mids']
+                else:
+                    raise ValueError('Data Set Expired.')
+        except (OSError, KeyError, ValueError) as e:
+            logger.warning('Data Set in HDF5 File Will Not be Used for Ref Matrix Because %s.' % e)
 
-        authors_count = self.db.get_authors_count()
-        mat = np.zeros((authors_count, len(media_ids)), dtype='int8')
+        if mat is None or media_ids is None or mids is None:
+            media_ids, media_id_indexes, cur = [], {}, 0
+            for entrance in self.db.get_all_entrances():
+                media_ids.append(entrance['media_id'])
+                media_id_indexes[str(entrance['media_id'])] = cur
+                cur += 1
 
-        mids = []
-        cur = 0
-        for mid, reviews, _ in self.db.get_valid_author_ratings_follow_pairs():
-            mids.append(mid)
-            for review in reviews:
-                index = str(review['media_id'])
-                mat[cur, media_id_indexes[index]] = review['score']
-            cur += 1
+            authors_count = self.db.get_authors_count()
+            mat = np.zeros((authors_count, len(media_ids)), dtype='int8')
 
+            mids = []
+            cur = 0
+            for mid, reviews, _ in self.db.get_valid_author_ratings_follow_pairs():
+                mids.append(mid)
+                for review in reviews:
+                    index = str(review['media_id'])
+                    mat[cur, media_id_indexes[index]] = review['score']
+                cur += 1
+
+            with h5py.File(self.conf.HDF5_FILENAME, "w") as f:
+                f['animes_authors_refs_matrix'] = mat
+                f['media_ids'] = media_ids
+                f['mids'] = mids
         return mat, media_ids, mids
 
     @staticmethod
@@ -47,17 +64,28 @@ class BangumiAnalyzer:
         lhs_shared, rhs_shared = lhs[index], rhs[index]
         return pearsonr(lhs, rhs)[0] if len(lhs_shared) > 1 else 0
 
-    @staticmethod
     @log_duration
-    def get_similarity_matrix(refs_matrix):
-        _, cols_count = refs_matrix.shape
-        mat = np.zeros((cols_count, cols_count))
-        for i in range(0, cols_count):
-            logger.info('Calculating Similarities %s/%s...' % (i, cols_count))
-            for j in range(i + 1, cols_count):
-                mat[i, j] = BangumiAnalyzer.calc_similarity(refs_matrix[:, i], refs_matrix[:, j])
-        mat += mat.T
-        np.fill_diagonal(mat, -1)
+    def get_similarity_matrix(self, refs_matrix):
+        mat = None
+        try:
+            with h5py.File(self.conf.HDF5_FILENAME, "r") as f:
+                mat = f['animes_similarity_matrix']
+        except (OSError, KeyError) as e:
+            logger.warning('Data Set in HDF5 File Will Not be Used for Similarity Matrix Because %s.' % e)
+
+        if mat is None:
+            _, cols_count = refs_matrix.shape
+            mat = np.zeros((cols_count, cols_count))
+            for i in range(0, cols_count):
+                logger.info('Calculating Similarities %s/%s...' % (i, cols_count))
+                for j in range(i + 1, cols_count):
+                    mat[i, j] = BangumiAnalyzer.calc_similarity(refs_matrix[:, i], refs_matrix[:, j])
+            mat += mat.T
+            np.fill_diagonal(mat, -1)
+
+            with h5py.File(self.conf.HDF5_FILENAME, "r+") as f:
+                f['animes_similarity_matrix'] = mat
+                f.attrs['last_update'] = str(datetime.now())
         return mat
 
     @log_duration
@@ -78,41 +106,42 @@ class BangumiAnalyzer:
             cur += 1
         logger.info('Animes Top-Matches Persisted.')
 
-    def calc_authors_similarity_with_cache(self, ref_mat, index_0, index_1):
-        pass
-
     @log_duration
     def process_authors_recommendation(self, ref_mat, media_ids, mids) -> None:
         for i in range(0, len(mids)):
-            logger.info("Calculating %s's Top-Matches and Recommendation." % mids[i])
-            similarities = np.empty((len(mids),))
-            similarities[i] = -1
-            for j in range(0, len(mids)):
-                if i != j:
-                    index_pair = '%s:%s' % (min(i, j), max(i, j))
-                    similarity = self.redis.get(index_pair)
-                    if similarity is None:
-                        similarity = self.calc_similarity(ref_mat[i], ref_mat[j])
-                        self.redis.set(index_pair, similarity)
-                    similarities[j] = similarity
-            sorted_indexes = np.flip(similarities.argsort(), axis=0)[0 - self.conf.ANALYZE_AUTHOR_TOP_MATCHES_SIZE:]
+            if self.db.is_need_re_calculate(mids[i]):
+                logger.info("[%s/%s] Calculating %s's Top-Matches and Recommendation..." % (i, len(mids), mids[i]))
+                similarities = np.empty((len(mids),))
+                similarities[i] = -1
+                for j in range(0, len(mids)):
+                    if i != j:
+                        index_pair = '%s:%s' % (mids[min(i, j)], mids[max(i, j)])
+                        similarity = self.redis.get(index_pair)
+                        if similarity is None:
+                            similarity = self.calc_similarity(ref_mat[i], ref_mat[j])
+                            self.redis.set(index_pair, similarity)
+                            self.redis.expire(index_pair, self.conf.REDIS_SIMILARITY_TTL)
+                        similarities[j] = similarity
+                sorted_indexes = np.flip(similarities.argsort(), axis=0)[0 - self.conf.ANALYZE_AUTHOR_TOP_MATCHES_SIZE:]
 
-            top_matches, recommendation = [], []
-            total_scores_with_weight, total_weight = 0, 0
-            for index in sorted_indexes:
-                similarity = similarities[index]
-                top_matches.append({'mid': mids[index], 'similarity': similarity})
-                total_scores_with_weight += similarity * ref_mat[index]
-                total_weight += similarity
-            recommend_indexes_sorted = np.flip((total_scores_with_weight / total_weight).argsort(), axis=0)
-            author_watched_media_ids = self.db.get_author_watched_media_ids(mids[i])
-            for index in recommend_indexes_sorted:
-                if len(recommendation) == self.conf.ANALYZE_AUTHOR_RECOMMENDATION_SIZE:
-                    break
-                if media_ids[index] not in author_watched_media_ids:
-                    recommendation.append(media_ids[index])
+                top_matches, recommendation = [], []
+                total_scores_with_weight, total_weight = 0, 0
+                for index in sorted_indexes:
+                    similarity = similarities[index]
+                    top_matches.append({'mid': mids[index], 'similarity': similarity})
+                    total_scores_with_weight += similarity * ref_mat[index]
+                    total_weight += similarity
+                recommend_indexes_sorted = np.flip((total_scores_with_weight / total_weight).argsort(), axis=0)
+                author_watched_media_ids = self.db.get_author_watched_media_ids(mids[i])
+                for index in recommend_indexes_sorted:
+                    if len(recommendation) == self.conf.ANALYZE_AUTHOR_RECOMMENDATION_SIZE:
+                        break
+                    if media_ids[index] not in author_watched_media_ids:
+                        recommendation.append(media_ids[index])
 
-            self.db.update_author_recommendation(mids[i], top_matches, recommendation)
+                self.db.update_author_recommendation(mids[i], top_matches, recommendation)
+            else:
+                logger.info('[%s/%s] Skip Calculating %s.' % (i, len(mids), mids[i]))
         logger.info('Authors Top-Matches Persisted.')
 
     def analyze(self) -> None:
@@ -127,5 +156,4 @@ class BangumiAnalyzer:
         self.process_authors_recommendation(ref_mat, media_ids, mids)
 
         logger.info('Analyzing Tasks Finished.')
-        self.redis.flushdb()
         gc.collect()

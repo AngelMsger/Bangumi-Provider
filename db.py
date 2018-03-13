@@ -42,6 +42,9 @@ class DB:
     def push_to_follow(self, mid, season_ids) -> None:
         pass
 
+    def is_need_re_calculate(self, mid):
+        pass
+
     def update_anime_top_matches(self, media_id, top_matches) -> None:
         pass
 
@@ -102,7 +105,7 @@ class MongoDB(DB):
     def get_author_tasks(self):
         threshold = datetime.now() - timedelta(hours=self.conf.CRAWL_AUTHOR_TTL)
         return self.db.authors.find({
-            'last_update': {'$not': {'$gt': threshold}}
+            'last_crawl': {'$not': {'$gt': threshold}}
         }, {'mid': 1}).limit(self.conf.CRAWL_AUTHOR_MAX_PER_TIME)
 
     def get_media_id(self, season_id):
@@ -135,7 +138,12 @@ class MongoDB(DB):
         return reviews_count
 
     def push_to_follow(self, mid, season_ids) -> None:
-        self.db.authors.update_one({'mid': mid}, {'$set': {'follow': season_ids, 'last_update': datetime.now()}})
+        self.db.authors.update_one({'mid': mid}, {'$set': {'follow': season_ids, 'last_crawl': datetime.now()}})
+
+    def is_need_re_calculate(self, mid):
+        threshold = datetime.now() - timedelta(hours=self.conf.ANALYZE_AUTHOR_TTL)
+        last_analyze = self.db.authors.find_one({'mid': mid}).get('last_analyze')
+        return last_analyze is None or last_analyze < threshold
 
     def update_anime_top_matches(self, media_id, top_matches) -> None:
         self.db.animes.update_one({'media_id': media_id}, {'$set': {'top_matches': top_matches}})
@@ -143,7 +151,8 @@ class MongoDB(DB):
     def update_author_recommendation(self, mid, top_matches, recommendation) -> None:
         self.db.authors.update_one({'mid': mid}, {'$set': {
             'top_matches': top_matches,
-            'recommendation': recommendation
+            'recommendation': recommendation,
+            'last_analyze': datetime.now()
         }})
 
     def __init__(self, conf) -> None:

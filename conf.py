@@ -22,6 +22,8 @@ class Conf:
     REDIS_PASSWORD = os.environ.get('REDIS_PASSWORD', None)
     REDIS_MAX_MEMORY = '%smb' % int(os.environ.get('REDIS_MAX_MEMORY', 512))
 
+    REDIS_SIMILARITY_TTL = int(os.environ.get('REDIS_KV_TTL', 86400))
+
     # Logging
     LOGGING_FILENAME = os.environ.get('LOGGING_FILENAME', 'stdout.log')
     LOGGING_MAX_BYTES = int(os.environ.get('LOGGING_MAX_BYTES', 65536))
@@ -56,6 +58,13 @@ class Conf:
     ANALYZE_ANIME_TOP_MATCHES_SIZE = int(os.environ.get('ANALYZE_ANIME_TOP_MATCHES_SIZE', 8))
     ANALYZE_AUTHOR_TOP_MATCHES_SIZE = int(os.environ.get('ANALYZE_AUTHORS_SIMILARITY_COUNT', 64))
     ANALYZE_AUTHOR_RECOMMENDATION_SIZE = int(os.environ.get('ANALYZE_AUTHOR_RECOMMENDATION_SIZE', 16))
+
+    ANALYZE_AUTHOR_TTL = int(os.environ.get('ANALYZE_AUTHOR_TTL', 720))
+
+    # HDF5 File
+    HDF5_FILENAME = os.environ.get('CRAWL_USERNAME', 'bangumi.hdf5')
+    # Matrix in HDF5 File Will Be Re-Use If It Not Expired (Hour) Rather than Re-Calculate.
+    HDF5_DATA_SET_TTL = int(os.environ.get('HDF5_DATA_SET_TTL', 72))
 
 
 class Dev(Conf):
