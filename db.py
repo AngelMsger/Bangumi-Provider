@@ -3,7 +3,6 @@ from datetime import datetime
 from datetime import timedelta
 
 from pymongo import MongoClient, IndexModel, ASCENDING, DESCENDING
-import pymysql.cursors
 
 from utils import logger, log_duration
 
