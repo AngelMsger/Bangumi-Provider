@@ -83,11 +83,11 @@ class BangumiAnalyzer:
 
     @log_duration
     def process_authors_recommendation(self, ref_mat, media_ids, mids) -> None:
-        for i in range(0, mids):
+        for i in range(0, len(mids)):
             logger.info("Calculating %s's Top-Matches and Recommendation." % mids[i])
             similarities = np.empty((len(mids),))
             similarities[i] = -1
-            for j in range(0, mids):
+            for j in range(0, len(mids)):
                 if i != j:
                     index_pair = '%s:%s' % (min(i, j), max(i, j))
                     similarity = self.redis.get(index_pair)
