@@ -25,9 +25,9 @@ class BangumiAnalyzer:
             with h5py.File(self.conf.HDF5_FILENAME, "r") as f:
                 last_update = datetime.strptime(f.attrs['last_update'], '%Y-%m-%d %H:%M:%S.%f')
                 if last_update > datetime.now() - timedelta(hours=self.conf.HDF5_DATA_SET_TTL):
-                    mat = f['animes_authors_refs_matrix']
-                    media_ids = f['media_ids']
-                    mids = f['mids']
+                    mat = np.array(f['animes_authors_refs_matrix'])
+                    media_ids = np.array(f['media_ids'])
+                    mids = np.array(f['mids'])
                 else:
                     raise ValueError('Data Set Expired.')
         except (OSError, KeyError, ValueError) as e:
@@ -69,7 +69,7 @@ class BangumiAnalyzer:
         mat = None
         try:
             with h5py.File(self.conf.HDF5_FILENAME, "r") as f:
-                mat = f['animes_similarity_matrix']
+                mat = np.array(f['animes_similarity_matrix'])
         except (OSError, KeyError) as e:
             logger.warning('Data Set in HDF5 File Will Not be Used for Similarity Matrix Because %s.' % e)
 
