@@ -65,7 +65,7 @@ class Conf:
     ANALYZE_AUTHOR_TTL = int(os.environ.get('ANALYZE_AUTHOR_TTL', 720))
 
     # HDF5 File
-    HDF5_FILENAME = os.environ.get('CRAWL_USERNAME', 'bangumi.hdf5')
+    HDF5_FILENAME = os.environ.get('HDF5_FILENAME', 'bangumi.hdf5')
     # Matrix in HDF5 File Will Be Re-Use If It Not Expired (Hour) Rather than Re-Calculate.
     HDF5_DATA_SET_TTL = int(os.environ.get('HDF5_DATA_SET_TTL', 72))
 

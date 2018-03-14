@@ -53,9 +53,9 @@ class BangumiAnalyzer:
                 cur += 1
 
             with h5py.File(self.conf.HDF5_FILENAME, "w") as f:
-                f['animes_authors_refs_matrix'] = mat
-                f['media_ids'] = media_ids
-                f['mids'] = mids
+                f.create_dataset('animes_authors_refs_matrix', data=mat)
+                f.create_dataset('media_ids', data=media_ids)
+                f.create_dataset('mids', data=mids)
         return mat, media_ids, mids
 
     @staticmethod
@@ -84,7 +84,7 @@ class BangumiAnalyzer:
             np.fill_diagonal(mat, -1)
 
             with h5py.File(self.conf.HDF5_FILENAME, "r+") as f:
-                f['animes_similarity_matrix'] = mat
+                f.create_dataset('animes_similarity_matrix', data=mat)
                 f.attrs['last_update'] = str(datetime.now())
         return mat
 
