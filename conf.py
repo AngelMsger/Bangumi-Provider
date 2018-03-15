@@ -56,7 +56,7 @@ class Conf:
 
     # Analyzer
     ANALYZE_ANIME_TOP_MATCHES_SIZE = int(os.environ.get('ANALYZE_ANIME_TOP_MATCHES_SIZE', 8))
-    ANALYZE_AUTHOR_TOP_MATCHES_SIZE = int(os.environ.get('ANALYZE_AUTHOR_TOP_MATCHES_SIZE', 16))
+    ANALYZE_AUTHOR_TOP_MATCHES_SIZE = int(os.environ.get('ANALYZE_AUTHOR_TOP_MATCHES_SIZE', 8))
     ANALYZE_AUTHOR_RECOMMENDATION_SIZE = int(os.environ.get('ANALYZE_AUTHOR_RECOMMENDATION_SIZE', 8))
 
     # Author Whose Reviews More than Threshold Will be Calculate.
