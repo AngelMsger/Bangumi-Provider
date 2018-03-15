@@ -99,8 +99,8 @@ class BangumiAnalyzer:
 
         cur = 0
         for anime_sim_indexes in animes_sim_indexes_mat:
-            self.db.update_anime_top_matches(media_ids[cur], [{
-                'media_id': media_ids[index],
+            self.db.update_anime_top_matches(media_ids[cur].item(), [{
+                'media_id': media_ids[index].item(),
                 'similarity': animes_sim_mat[cur, index]
             } for index in anime_sim_indexes])
             cur += 1
@@ -109,19 +109,20 @@ class BangumiAnalyzer:
     def process_author_recommendation(self, total_scores_with_weight, total_weight, mid, media_ids, top_matches):
         recommendation = []
         recommend_indexes_sorted = np.flip((total_scores_with_weight / total_weight).argsort(), axis=0)
-        author_watched_media_ids = self.db.get_author_watched_media_ids(mid)
+        author_watched_media_ids = self.db.get_author_watched_media_ids(mid.item())
         for index in recommend_indexes_sorted:
             if len(recommendation) == self.conf.ANALYZE_AUTHOR_RECOMMENDATION_SIZE:
                 break
             if media_ids[index] not in author_watched_media_ids:
-                recommendation.append(media_ids[index])
+                recommendation.append(media_ids[index].item())
 
-        self.db.update_author_recommendation(mid, top_matches, recommendation)
+        self.db.update_author_recommendation(mid.item(), top_matches, recommendation)
 
     @log_duration
     def process_authors_recommendation(self, ref_mat, media_ids, mids) -> None:
         logger.info('Calculating Animes Similarities...')
         try:
+            raise MemoryError()
             authors_sim_mat = self.get_similarity_matrix(ref_mat.T, 'authors_similarity_matrix')
             logger.info('Authors Similarity Matrix %s Calculated Using Numpy.' % str(authors_sim_mat.shape))
             authors_sim_indexes_mat = np.flip(authors_sim_mat.argsort()[:,
@@ -132,10 +133,10 @@ class BangumiAnalyzer:
             top_matches = []
             for i in range(0, len(authors_sim_indexes_mat)):
                 for index in authors_sim_indexes_mat[i]:
-                    similarity = authors_sim_indexes_mat[i, index]
+                    similarity = authors_sim_mat[i, index]
                     top_matches.append({
-                        'mid': mids[index],
-                        'similarity': similarity
+                        'mid': mids[index].item(),
+                        'similarity': similarity.item()
                     })
                     total_scores_with_weight += similarity * ref_mat[index]
                     total_weight += similarity
@@ -164,7 +165,7 @@ class BangumiAnalyzer:
                     total_scores_with_weight, total_weight = 0, 0
                     for index in sorted_indexes:
                         similarity = similarities[index]
-                        top_matches.append({'mid': mids[index], 'similarity': similarity})
+                        top_matches.append({'mid': mids[index].item(), 'similarity': similarity.item()})
                         total_scores_with_weight += similarity * ref_mat[index]
                         total_weight += similarity
                     self.process_author_recommendation(total_scores_with_weight, total_weight, mids[i], media_ids,
