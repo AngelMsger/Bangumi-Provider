@@ -47,8 +47,8 @@ class Conf:
 
     # Author Expired Will Be Considered to Update Next Time (Hour).
     CRAWL_AUTHOR_FOLLOW = False if os.environ.get('CRAWL_AUTHOR_FOLLOW', 'False') else True
-    CRAWL_AUTHOR_TTL = int(os.environ.get('CRAWL_AUTHOR_TTL', 720))
-    CRAWL_AUTHOR_MAX_PER_TIME = int(os.environ.get('CRAWL_AUTHOR_MAX_PER_TIME', 50000))
+    CRAWL_AUTHOR_TTL = int(os.environ.get('CRAWL_AUTHOR_TTL', 512))
+    CRAWL_AUTHOR_MAX_PER_TIME = int(os.environ.get('CRAWL_AUTHOR_MAX_PER_TIME', 65536))
 
     # Risky, **DO NOT** Use Your Own Account.
     CRAWL_USERNAME = os.environ.get('CRAWL_USERNAME', 'bangumi')
@@ -56,18 +56,18 @@ class Conf:
 
     # Analyzer
     ANALYZE_ANIME_TOP_MATCHES_SIZE = int(os.environ.get('ANALYZE_ANIME_TOP_MATCHES_SIZE', 8))
-    ANALYZE_AUTHOR_TOP_MATCHES_SIZE = int(os.environ.get('ANALYZE_AUTHORS_SIMILARITY_COUNT', 64))
-    ANALYZE_AUTHOR_RECOMMENDATION_SIZE = int(os.environ.get('ANALYZE_AUTHOR_RECOMMENDATION_SIZE', 16))
+    ANALYZE_AUTHOR_TOP_MATCHES_SIZE = int(os.environ.get('ANALYZE_AUTHORS_SIMILARITY_COUNT', 16))
+    ANALYZE_AUTHOR_RECOMMENDATION_SIZE = int(os.environ.get('ANALYZE_AUTHOR_RECOMMENDATION_SIZE', 8))
 
     # Author Whose Reviews More than Threshold Will be Calculate.
-    ANALYZE_AUTHOR_REVIEWS_VALID_THRESHOLD = int(os.environ.get('ANALYZE_ANIME_TOP_MATCHES_SIZE', 3))
+    ANALYZE_AUTHOR_REVIEWS_VALID_THRESHOLD = int(os.environ.get('ANALYZE_ANIME_TOP_MATCHES_SIZE', 4))
 
-    ANALYZE_AUTHOR_TTL = int(os.environ.get('ANALYZE_AUTHOR_TTL', 720))
+    ANALYZE_AUTHOR_TTL = int(os.environ.get('ANALYZE_AUTHOR_TTL', 512))
 
     # HDF5 File
     HDF5_FILENAME = os.environ.get('HDF5_FILENAME', 'bangumi.hdf5')
     # Matrix in HDF5 File Will Be Re-Use If It Not Expired (Hour) Rather than Re-Calculate.
-    HDF5_DATA_SET_TTL = int(os.environ.get('HDF5_DATA_SET_TTL', 72))
+    HDF5_DATA_SET_TTL = int(os.environ.get('HDF5_DATA_SET_TTL', 64))
 
 
 class Dev(Conf):
