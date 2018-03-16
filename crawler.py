@@ -31,10 +31,10 @@ class BangumiCrawler:
         season_id = int(raw_result['season_id'])
         try:
             detail = json.loads(detail_response.text[19:-2])['result']
-        except JSONDecodeError:
+            media = detail['media']
+        except (JSONDecodeError, KeyError):
             logger.warning('Could Not Decode %s.' % detail_response.text)
             return None
-        media = detail['media']
         result = {
             'season_id': season_id,
             'title': raw_result['title'],

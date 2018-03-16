@@ -20,7 +20,7 @@ class Conf:
     REDIS_PORT = int(os.environ.get('REDIS_PORT', 6379))
     REDIS_DATABASE = int(os.environ.get('REDIS_DATABASE', 0))
     REDIS_PASSWORD = os.environ.get('REDIS_PASSWORD', None)
-    REDIS_MAX_MEMORY = '%smb' % int(os.environ.get('REDIS_MAX_MEMORY', 1024))
+    REDIS_MAX_MEMORY = '%smb' % int(os.environ.get('REDIS_MAX_MEMORY', 8192))
 
     REDIS_SIMILARITY_TTL = int(os.environ.get('REDIS_KV_TTL', 86400))
 
@@ -78,4 +78,4 @@ class Prod(Conf):
     pass
 
 
-conf = Prod
+conf = Dev
