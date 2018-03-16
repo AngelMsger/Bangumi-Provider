@@ -133,8 +133,8 @@ class BangumiAnalyzer:
             logger.info('Authors Sim-Indexes %s Get Finished.' % str(authors_sim_indexes_mat.shape))
 
             total_scores_with_weight, total_weight = 0, 0
-            top_matches = []
             for i in range(0, len(authors_sim_indexes_mat)):
+                top_matches = []
                 for index in authors_sim_indexes_mat[i]:
                     if i != index:
                         similarity = self.asscalar(authors_sim_mat[i, index])
