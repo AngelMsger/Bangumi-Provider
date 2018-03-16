@@ -145,10 +145,9 @@ class MongoDB(DB):
         self.db.authors.update_one({'mid': mid}, {'$set': {'follow': season_ids, 'last_crawl': datetime.now()}})
 
     def is_need_re_calculate(self, mid):
-        return True
-        # threshold = datetime.now() - timedelta(hours=self.conf.ANALYZE_AUTHOR_TTL)
-        # last_analyze = self.db.authors.find_one({'mid': mid}).get('last_analyze')
-        # return last_analyze is None or last_analyze < threshold
+        threshold = datetime.now() - timedelta(hours=self.conf.ANALYZE_AUTHOR_TTL)
+        last_analyze = self.db.authors.find_one({'mid': mid}).get('last_analyze')
+        return last_analyze is None or last_analyze < threshold
 
     def update_anime_top_matches(self, media_id, top_matches) -> None:
         self.db.animes.update_one({'media_id': media_id}, {'$set': {'top_matches': top_matches}})

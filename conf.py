@@ -60,7 +60,7 @@ class Conf:
     ANALYZE_AUTHOR_RECOMMENDATION_SIZE = int(os.environ.get('ANALYZE_AUTHOR_RECOMMENDATION_SIZE', 8))
 
     # Author Whose Reviews More than Threshold Will be Calculate.
-    ANALYZE_AUTHOR_REVIEWS_VALID_THRESHOLD = int(os.environ.get('ANALYZE_AUTHOR_REVIEWS_VALID_THRESHOLD', 4))
+    ANALYZE_AUTHOR_REVIEWS_VALID_THRESHOLD = int(os.environ.get('ANALYZE_AUTHOR_REVIEWS_VALID_THRESHOLD', 8))
 
     ANALYZE_AUTHOR_TTL = int(os.environ.get('ANALYZE_AUTHOR_TTL', 512))
 
