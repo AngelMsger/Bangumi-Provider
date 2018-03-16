@@ -149,7 +149,7 @@ class BangumiAnalyzer:
         except MemoryError:
             logger.warning('Memory Error Caught, Using Redis as Cache to Calculate Similarities.')
             for i in range(0, len(mids)):
-                if self.db.is_need_re_calculate(mids[i]):
+                if self.db.is_need_re_calculate(self.asscalar(mids[i])):
                     logger.info("[%s/%s] Calculating %s's Top-Matches and Recommendation..." % (i, len(mids), mids[i]))
                     similarities = np.empty((len(mids),))
                     similarities[i] = -2
