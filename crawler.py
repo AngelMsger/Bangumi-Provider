@@ -157,7 +157,7 @@ class BangumiCrawler:
                         todo.remove(raw_result)
                         logger.info('%s Processed.' % season_id)
                     else:
-                        logger.warning("Decode %s's Response Error, Waiting for Retry...")
+                        logger.warning("Decode %s's Response Error, Waiting for Retry..." % season_id)
                         continue
                 else:
                     logger.warning("Request %s's API Failed, Waiting for Retry..." % season_id)
@@ -179,22 +179,22 @@ class BangumiCrawler:
             logger.info('Start Trying %s Times, %s Animes Left.' % (retry, len(entrances)))
             for entrance in entrances:
                 media_id = entrance['media_id']
-                try:
-                    is_long_reviews_finished, cursor = self.crawl_and_persist_reviews(
-                        media_id, entrance['last_long_reviews_cursor'])
-                    entrance['last_long_reviews_cursor'] = cursor
+                # try:
+                is_long_reviews_finished, cursor = self.crawl_and_persist_reviews(
+                    media_id, entrance['last_long_reviews_cursor'])
+                entrance['last_long_reviews_cursor'] = cursor
 
-                    is_short_reviews_finished, cursor = self.crawl_and_persist_reviews(
-                        media_id, entrance['last_short_reviews_cursor'], is_long=False)
-                    entrance['last_short_reviews_cursor'] = cursor
+                is_short_reviews_finished, cursor = self.crawl_and_persist_reviews(
+                    media_id, entrance['last_short_reviews_cursor'], is_long=False)
+                entrance['last_short_reviews_cursor'] = cursor
 
-                    if is_long_reviews_finished and is_short_reviews_finished:
-                        logger.info("Get %s's Reviews Finished." % media_id)
-                        entrances.remove(entrance)
-                    else:
-                        logger.warning("Get %s's Reviews Partly Finished, Waiting for Retry..." % media_id)
-                except (KeyError, RequestException):
-                    logger.warning("Start Crawl %ds's Reviews Failed, Waiting for Retry..." % entrance['media_id'])
+                if is_long_reviews_finished and is_short_reviews_finished:
+                    logger.info("Get %s's Reviews Finished." % media_id)
+                    entrances.remove(entrance)
+                else:
+                    logger.warning("Get %s's Reviews Partly Finished, Waiting for Retry..." % media_id)
+                # except (KeyError, RequestException) as e:
+                #     logger.warning("Start Crawl %ds's Reviews Failed, Waiting for Retry...%s" % (entrance['media_id'], e))
             retry += 1
         return len(entrances), retry
 
