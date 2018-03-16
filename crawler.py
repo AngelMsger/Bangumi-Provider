@@ -123,7 +123,7 @@ class BangumiCrawler:
             logger.debug("Processing %s's Reviews at Cursor: %s..." % (media_id, cursor))
             try:
                 reviews = requests.get('%s&cursor=%s' % (url, cursor), headers=self.HEADERS).json()['result']['list']
-            except (KeyError, RequestException):
+            except (KeyError, JSONDecodeError, RequestException):
                 logger.warning("Get %s's %s Reviews Broken at Cursor %s." % (media_id, reviews_type.title(), cursor))
                 return False, cursor
 
