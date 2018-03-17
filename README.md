@@ -4,7 +4,7 @@
 ![Bangumi-Crawler](https://s1.hdslb.com/bfs/static/jinkela/home/images/bgm-nodata.png)
 
 ## Overview
-Bangumi-Provider is a content provider for [Bangumi-Player](https://github.com/AngelMsger/Bangumi-Player). It crawl, analyze the data from [Bilibili](https://www.bilibili.com), and persist the result to database. It run with single thread and no framework was used.
+Bangumi-Provider is a content provider for [Bangumi-Visualizer](https://github.com/AngelMsger/Bangumi-Visualizer). It crawl, analyze the data from [Bilibili](https://www.bilibili.com), and persist the result to database, using [Collaborative Filtering](https://www.wikiwand.com/en/Collaborative_filtering) algorithm when analyzing data. It run with single thread and no framework was used.
 
 ## Features
 * Incremental Crawl & Analyze

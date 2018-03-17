@@ -41,7 +41,7 @@ class BangumiCrawler:
             'alias': detail.get('alias', ''),
             'tags': [{'id': int(tag['tag_id']), 'name': tag['tag_name']} for tag in detail.get('tags', [])],
             'area': [{'id': int(area['id']), 'name': area['name']} for area in media.get('area', [])],
-            'is_finish': bool(raw_result['is_finish']),
+            'is_finish': bool(int(raw_result['is_finish'])),
             'favorites': int(raw_result['favorites']),
             'danmaku_count': int(detail['danmaku_count']),
             'cover_url': raw_result['cover'],
@@ -193,7 +193,7 @@ class BangumiCrawler:
                         entrances.remove(entrance)
                     else:
                         logger.warning("Get %s's Reviews Partly Finished, Waiting for Retry..." % media_id)
-                except (KeyError, RequestException) as e:
+                except (KeyError, RequestException):
                     logger.warning("Start Crawl %ds's Reviews Failed, Waiting for Retry..." % entrance['media_id'])
             retry += 1
         return len(entrances), retry
