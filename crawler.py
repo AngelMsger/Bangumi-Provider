@@ -116,12 +116,12 @@ class BangumiCrawler:
         result = response.json()['result']
         total, reviews = result['total'], result['list']
         while len(reviews) > 0:
-            cursor = reviews[-1]['cursor']
-            self.db.persist_reviews(media_id, [self.make_review(review, media_id)
-                                               if is_long else self.make_review(review, media_id, is_long=False)
-                                               for review in reviews], cursor, is_long=is_long)
-            logger.debug("Processing %s's Reviews at Cursor: %s..." % (media_id, cursor))
             try:
+                made_reviews = [self.make_review(review, media_id)
+                                if is_long else self.make_review(review, media_id, is_long=False) for review in reviews]
+                cursor = reviews[-1]['cursor']
+                self.db.persist_reviews(media_id, made_reviews, cursor, is_long=is_long)
+                logger.debug("Processing %s's Reviews at Cursor: %s..." % (media_id, cursor))
                 reviews = requests.get('%s&cursor=%s' % (url, cursor), headers=self.HEADERS).json()['result']['list']
             except (KeyError, JSONDecodeError, RequestException):
                 logger.warning("Get %s's %s Reviews Broken at Cursor %s." % (media_id, reviews_type.title(), cursor))
@@ -179,22 +179,22 @@ class BangumiCrawler:
             logger.info('Start Trying %s Times, %s Animes Left.' % (retry, len(entrances)))
             for entrance in entrances:
                 media_id = entrance['media_id']
-                # try:
-                is_long_reviews_finished, cursor = self.crawl_and_persist_reviews(
-                    media_id, entrance['last_long_reviews_cursor'])
-                entrance['last_long_reviews_cursor'] = cursor
+                try:
+                    is_long_reviews_finished, cursor = self.crawl_and_persist_reviews(
+                        media_id, entrance['last_long_reviews_cursor'])
+                    entrance['last_long_reviews_cursor'] = cursor
 
-                is_short_reviews_finished, cursor = self.crawl_and_persist_reviews(
-                    media_id, entrance['last_short_reviews_cursor'], is_long=False)
-                entrance['last_short_reviews_cursor'] = cursor
+                    is_short_reviews_finished, cursor = self.crawl_and_persist_reviews(
+                        media_id, entrance['last_short_reviews_cursor'], is_long=False)
+                    entrance['last_short_reviews_cursor'] = cursor
 
-                if is_long_reviews_finished and is_short_reviews_finished:
-                    logger.info("Get %s's Reviews Finished." % media_id)
-                    entrances.remove(entrance)
-                else:
-                    logger.warning("Get %s's Reviews Partly Finished, Waiting for Retry..." % media_id)
-                # except (KeyError, RequestException) as e:
-                #     logger.warning("Start Crawl %ds's Reviews Failed, Waiting for Retry...%s" % (entrance['media_id'], e))
+                    if is_long_reviews_finished and is_short_reviews_finished:
+                        logger.info("Get %s's Reviews Finished." % media_id)
+                        entrances.remove(entrance)
+                    else:
+                        logger.warning("Get %s's Reviews Partly Finished, Waiting for Retry..." % media_id)
+                except (KeyError, RequestException) as e:
+                    logger.warning("Start Crawl %ds's Reviews Failed, Waiting for Retry..." % entrance['media_id'])
             retry += 1
         return len(entrances), retry
 
