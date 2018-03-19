@@ -13,4 +13,4 @@ docker tag bangumi-provider $image
 docker push $image
 
 # Request Webhook
-# curl https://api.angelmsger.com/code?image=$image || /bin/true
+# curl https://api.angelmsger.com/project/deploy/$image || /bin/true

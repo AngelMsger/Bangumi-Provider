@@ -1,4 +1,5 @@
 import time
+from datetime import datetime
 
 import schedule
 
@@ -21,8 +22,9 @@ if __name__ == '__main__':
         analyzer.analyze()
 
     if conf.SCHEDULE_ENABLE:
-        logger.info('Running with Schedule Enabled, Tasks Schedule Every Week.')
-        schedule.every().week.do(jobs)
+        logger.info('Running with Schedule Enabled, Tasks Schedule Every Day.\nNow: %s, Next Schedule: %s.' %
+                    (datetime.now(), conf.SCHEDULE_CRON_AT))
+        schedule.every().day.at(conf.SCHEDULE_CRON_AT).do(jobs)
         while True:
             schedule.run_pending()
             time.sleep(1)

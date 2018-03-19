@@ -17,25 +17,10 @@ Bangumi-Provider is a content provider for [Bangumi-Visualizer](https://github.c
 `docker-compose up`
 
 ### With Docker
-`docker run -itd --name=provider --net=host --restart=always -e DB_PASSWORD=$DB_PASSWORD angelmsger/bangumi-provider`
+`docker run -itd --name=provider --net=host -e DB_PASSWORD=$DB_PASSWORD angelmsger/bangumi-provider`
 
 ### Manually
-
-#### Set up env
-```
-python -m venv venv
-source venv/bin/activate
-pip install -r requirements
-```
-
-#### Set up storage backend
-Make sure your storage backend work correnctly, **ONLY** [MongoDB](https://www.mongodb.com) is supported now.
-
-#### Configuration
-Custom `conf.py`.
-
-#### Run
-`python exec.py`
+`python -m venv venv && source venv/bin/activate && pip install -r requirements && python exec.py`
 
 ## Todo
 1. MySQL support

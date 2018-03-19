@@ -4,6 +4,7 @@ import os
 class Conf:
     # Schedule
     SCHEDULE_ENABLE = False if os.environ.get('SCHEDULE_ENABLE', 'False').lower() == 'false' else True
+    SCHEDULE_CRON_AT = os.environ.get('CRON_AT', '16:00')
 
     # Persist Database Backend
     DB_HOST = os.environ.get('DB_HOST', 'localhost')
