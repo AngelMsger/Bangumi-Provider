@@ -193,7 +193,7 @@ class BangumiCrawler:
                         entrances.remove(entrance)
                     else:
                         logger.warning("Get %s's Reviews Partly Finished, Waiting for Retry..." % media_id)
-                except (KeyError, RequestException):
+                except (KeyError, JSONDecodeError, RequestException):
                     logger.warning("Start Crawl %ds's Reviews Failed, Waiting for Retry..." % entrance['media_id'])
             retry += 1
         return len(entrances), retry
