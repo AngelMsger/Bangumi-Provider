@@ -55,9 +55,9 @@ class DB:
 # Persist solution for MongoDB
 class MongoDB(DB):
     def truncate_all(self) -> None:
-        self.db.animes.remove({})
-        self.db.authors.remove({})
-        self.db.archives.remove({})
+        self.db.animes.delete_many({})
+        self.db.authors.delete_many({})
+        self.db.archives.delete_many({})
 
     @log_duration
     def archive(self) -> None:
@@ -120,15 +120,19 @@ class MongoDB(DB):
     def get_valid_author_ratings_follow_pairs(self):
         return ((author['mid'], [review for review in author['reviews']],
                  [self.get_media_id(season_id) for season_id in author.get('follow', [])])
-                for author in self.db.authors.find({
-                    '$where': 'this.reviews.length > %s' % self.conf.ANALYZE_AUTHOR_REVIEWS_VALID_THRESHOLD
-                }))
+                for author in self.db.authors.find(self._valid_author_query()))
+
+    def _valid_author_query(self):
+        # count_documents does not support $where; keep counting and reading
+        # on the same predicate so the analyzer allocates the right row count.
+        return {'$expr': {'$gt': [
+            {'$size': {'$ifNull': ['$reviews', []]}},
+            self.conf.ANALYZE_AUTHOR_REVIEWS_VALID_THRESHOLD
+        ]}}
 
     def get_authors_count(self, is_valid=True):
-        query = {
-            '$where': 'this.reviews.length > %s' % self.conf.ANALYZE_AUTHOR_REVIEWS_VALID_THRESHOLD
-        } if is_valid else {}
-        return self.db.authors.count(query)
+        query = self._valid_author_query() if is_valid else {}
+        return self.db.authors.count_documents(query)
 
     def get_reviews_count(self, media_id):
         pipeline = [{
@@ -161,13 +165,15 @@ class MongoDB(DB):
 
     def __init__(self, conf) -> None:
         self.conf = conf
-        self.client = MongoClient(conf.DB_HOST, conf.DB_PORT)
-        self.db = self.client[conf.DB_DATABASE]
+        credentials = {}
         if conf.DB_ENABLE_AUTH:
-            self.db.authenticate(conf.DB_USERNAME, conf.DB_PASSWORD)
+            credentials = {'username': conf.DB_USERNAME, 'password': conf.DB_PASSWORD,
+                           'authSource': conf.DB_DATABASE}
+        self.client = MongoClient(conf.DB_HOST, conf.DB_PORT, **credentials)
+        self.db = self.client[conf.DB_DATABASE]
 
         # Init Index
-        collections = set(self.db.collection_names())
+        collections = set(self.db.list_collection_names())
         if 'animes' not in collections:
             animes_index_0 = IndexModel([('season_id', ASCENDING)])
             animes_index_1 = IndexModel([('media_id', ASCENDING)])
@@ -180,7 +186,9 @@ class MongoDB(DB):
             self.db.archives.create_index([('date', DESCENDING), ('archives.media_id', ASCENDING)])
 
     def __del__(self) -> None:
-        self.client.close()
+        client = getattr(self, 'client', None)
+        if client is not None:
+            client.close()
 
 
 class MySQL(DB):

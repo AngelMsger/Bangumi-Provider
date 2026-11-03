@@ -60,7 +60,7 @@ class BangumiAnalyzer:
 
     @staticmethod
     def asscalar(value):
-        return np.asscalar(value) if (type(value) != int and type(value) != float) else value
+        return value.item() if isinstance(value, (np.generic, np.ndarray)) else value
 
     @staticmethod
     def calc_similarity(lhs, rhs):
