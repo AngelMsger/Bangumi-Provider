@@ -4,7 +4,8 @@ permissions:
   contents: read
 jobs:
   compatibility:
-    runs-on: ubuntu-latest
+    # MongoDB 8.0 refuses to start on Linux 6.19+ (SERVER-121912).
+    runs-on: ubuntu-22.04
     services:
       mongo:
         image: mongo:8.0

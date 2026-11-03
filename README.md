@@ -22,6 +22,8 @@ Bangumi-Provider is a content provider for [Bangumi-Visualizer](https://github.c
 ### Manually
 Use Python 3.12, MongoDB 8.0 and Redis 7.4 (the versions exercised by CI).
 The pinned NumPy/SciPy stack requires Python 3.12 or newer; the Docker image uses 3.12.
+MongoDB 8.0 currently requires a Linux kernel older than 6.19
+([SERVER-121912](https://jira.mongodb.org/browse/SERVER-121912)); CI uses Ubuntu 22.04.
 
 `python3.12 -m venv venv && source venv/bin/activate && pip install -r requirements.txt && python exec.py`
 
